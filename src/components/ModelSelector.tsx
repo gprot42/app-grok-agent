@@ -27,6 +27,7 @@ const ICONS: Record<string, string> = {
   star: "🌟",
   brain: "🧠",
   image: "🖼️",
+  search: "🔬",
 };
 
 export function ModelSelector({
