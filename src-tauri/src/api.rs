@@ -83,9 +83,7 @@ pub async fn send_chat_message(
 
     if publisher == "anthropic" {
         let mut beta_headers = Vec::new();
-        if use_1m_context {
-            beta_headers.push("context-1m-2025-08-07");
-        }
+        // 1M context beta header deprecated - no longer needed
         if use_memory {
             beta_headers.push("context-management-2025-06-27");
         }
