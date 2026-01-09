@@ -359,7 +359,7 @@ function AboutPanel({ onClose }: { onClose: () => void }) {
           </div>
 
           <div className="text-center text-xs text-gray-400 dark:text-tokyo-muted pt-4 border-t border-gray-200 dark:border-tokyo-border">
-            Built with Tauri, React, and Rust. API keys are encrypted locally.
+            Built with Tauri, React, Rust, and Bun. API keys are encrypted locally.
           </div>
         </div>
       </div>
