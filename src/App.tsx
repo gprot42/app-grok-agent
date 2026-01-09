@@ -130,22 +130,32 @@ function App() {
       />
 
       <div className="theme-surface border-b theme-border px-6 py-3">
-        <ModelSelector
-          selectedModel={selectedModel}
-          selectedEndpoint={selectedEndpoint}
-          use1MContext={use1MContext}
-          useMemory={useMemory}
-          useGrounding={useGrounding}
-          thinkingLevel={thinkingLevel}
-          customUrl={customUrl}
-          onModelChange={setSelectedModel}
-          onEndpointChange={handleEndpointChange}
-          onUse1MContextChange={setUse1MContext}
-          onUseMemoryChange={setUseMemory}
-          onUseGroundingChange={setUseGrounding}
-          onThinkingLevelChange={setThinkingLevel}
-          onCustomUrlChange={setCustomUrl}
-        />
+        {activeTab === "chat" ? (
+          <ModelSelector
+            selectedModel={selectedModel}
+            selectedEndpoint={selectedEndpoint}
+            use1MContext={use1MContext}
+            useMemory={useMemory}
+            useGrounding={useGrounding}
+            thinkingLevel={thinkingLevel}
+            customUrl={customUrl}
+            onModelChange={setSelectedModel}
+            onEndpointChange={handleEndpointChange}
+            onUse1MContextChange={setUse1MContext}
+            onUseMemoryChange={setUseMemory}
+            onUseGroundingChange={setUseGrounding}
+            onThinkingLevelChange={setThinkingLevel}
+            onCustomUrlChange={setCustomUrl}
+          />
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🍌</span>
+            <div>
+              <div className="font-medium theme-text">Nano Banana Pro</div>
+              <div className="text-xs theme-text-muted">Gemini 3 Pro Image - AI image generation and editing</div>
+            </div>
+          </div>
+        )}
       </div>
 
       <main className="flex-1 overflow-hidden flex flex-col">
