@@ -27,6 +27,8 @@ sha2 = "0.10"
 rand = "0.8"
 dirs = "5"
 whoami = "1"
+ring = "0.17"
+lazy_static = "1.4"
 
 [features]
 default = ["custom-protocol"]

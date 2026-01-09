@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { Message, EndpointType, ModelConfig, ChatSession, TokenUsage } from "../types";
 
@@ -39,6 +39,7 @@ export function useChat() {
   const [lastTokenUsage, setLastTokenUsage] = useState<TokenUsage | null>(null);
   const [lastRawJson, setLastRawJson] = useState<string | null>(null);
   const [totalTokens, setTotalTokens] = useState<{ input: number; output: number }>({ input: 0, output: 0 });
+  const cancelledRef = useRef(false);
 
   const activeSession = sessions.find(s => s.id === activeSessionId) || sessions[0];
   const messages = activeSession?.messages || [];
@@ -48,13 +49,14 @@ export function useChat() {
     options: ChatOptions,
     attachedFile?: { path: string; data: string; mimeType: string }
   ) => {
+    cancelledRef.current = false;
     setIsLoading(true);
     setError(null);
 
     const userMessage: Message = { role: "user", content: prompt };
-    
-    setSessions(prev => prev.map(s => 
-      s.id === activeSessionId 
+
+    setSessions(prev => prev.map(s =>
+      s.id === activeSessionId
         ? { ...s, messages: [...s.messages, userMessage] }
         : s
     ));
@@ -78,10 +80,15 @@ export function useChat() {
         attachedFile,
       });
 
+      // If cancelled, don't update with the response
+      if (cancelledRef.current) {
+        return;
+      }
+
       const assistantMessage: Message = { role: "assistant", content: response.content };
-      
-      setSessions(prev => prev.map(s => 
-        s.id === activeSessionId 
+
+      setSessions(prev => prev.map(s =>
+        s.id === activeSessionId
           ? { ...s, messages: [...s.messages, assistantMessage] }
           : s
       ));
@@ -95,14 +102,17 @@ export function useChat() {
 
       return response.content;
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : String(e);
-      setError(errorMsg);
+      if (!cancelledRef.current) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        setError(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
   }, [messages, activeSessionId]);
 
   const generateImage = useCallback(async (options: GenerateImageOptions) => {
+    cancelledRef.current = false;
     setIsLoading(true);
     setError(null);
 
@@ -113,11 +123,17 @@ export function useChat() {
         editImage: options.editImage,
       });
 
+      if (cancelledRef.current) {
+        return;
+      }
+
       setGeneratedImages(prev => [...prev, imageBase64]);
       return imageBase64;
     } catch (e) {
-      const errorMsg = e instanceof Error ? e.message : String(e);
-      setError(errorMsg);
+      if (!cancelledRef.current) {
+        const errorMsg = e instanceof Error ? e.message : String(e);
+        setError(errorMsg);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -134,8 +150,8 @@ export function useChat() {
   }, []);
 
   const clearMessages = useCallback(() => {
-    setSessions(prev => prev.map(s => 
-      s.id === activeSessionId 
+    setSessions(prev => prev.map(s =>
+      s.id === activeSessionId
         ? { ...s, messages: [] }
         : s
     ));
@@ -164,7 +180,7 @@ export function useChat() {
 
   const deleteSession = useCallback((id: string) => {
     if (sessions.length <= 1) return;
-    
+
     setSessions(prev => prev.filter(s => s.id !== id));
     if (activeSessionId === id) {
       const remaining = sessions.filter(s => s.id !== id);
@@ -173,9 +189,15 @@ export function useChat() {
   }, [sessions, activeSessionId]);
 
   const renameSession = useCallback((id: string, name: string) => {
-    setSessions(prev => prev.map(s => 
+    setSessions(prev => prev.map(s =>
       s.id === id ? { ...s, name } : s
     ));
+  }, []);
+
+  const stopGeneration = useCallback(() => {
+    cancelledRef.current = true;
+    setIsLoading(false);
+    setError("Generation stopped by user");
   }, []);
 
   return {
@@ -197,6 +219,7 @@ export function useChat() {
     createSession,
     deleteSession,
     renameSession,
+    stopGeneration,
     setError,
   };
 }

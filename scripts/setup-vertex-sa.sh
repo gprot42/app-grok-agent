@@ -18,8 +18,10 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Default values
-KEY_FILE="vertex-key.json"
+CORTEX_DIR="$HOME/.cortex-agent"
+KEY_FILE="$CORTEX_DIR/vertex-key.json"
 REMOVE_MODE=false
+GCLOUD_ACCOUNT=""
 
 print_header() {
     echo -e "\n${BLUE}═══════════════════════════════════════════════════════════${NC}"
@@ -42,21 +44,21 @@ print_error() {
 show_usage() {
     print_header
     echo "Usage:"
-    echo "  $0 PROJECT_ID [SERVICE_ACCOUNT_NAME]"
-    echo "  $0 --remove PROJECT_ID [SERVICE_ACCOUNT_NAME]"
+    echo "  $0 [--account ACCOUNT] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
+    echo "  $0 --remove [--account ACCOUNT] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
     echo ""
-    echo "Commands:"
-    echo "  (default)   Create service account and generate key"
-    echo "  --remove    Remove service account, keys, and local key file"
+    echo "Options:"
+    echo "  --account ACCOUNT    Google Cloud account to use (e.g., user@domain.com)"
+    echo "  --remove             Remove service account, keys, and local key file"
     echo ""
     echo "Arguments:"
     echo "  PROJECT_ID           Your Google Cloud project ID (required)"
     echo "  SERVICE_ACCOUNT_NAME Name for the service account (default: cortex-agent-vertex)"
     echo ""
     echo "Examples:"
-    echo "  $0 my-gcp-project                    # Create with default name"
-    echo "  $0 my-gcp-project my-custom-sa       # Create with custom name"
-    echo "  $0 --remove my-gcp-project           # Remove service account"
+    echo "  $0 --account user@example.com my-project     # Create with specific account"
+    echo "  $0 my-gcp-project                            # Create with default account"
+    echo "  $0 --remove my-gcp-project                   # Remove service account"
     exit 1
 }
 
@@ -125,8 +127,10 @@ remove_service_account() {
         if [[ "$confirm_key" =~ ^[Yy]$ ]]; then
             rm -f "$KEY_FILE"
             rm -f "${KEY_FILE}.bak" 2>/dev/null || true
-            print_step "Local key file deleted"
+            print_step "Local key file deleted: $KEY_FILE"
         fi
+    else
+        print_warning "Key file not found at $KEY_FILE"
     fi
 
     echo ""
@@ -212,9 +216,14 @@ create_service_account() {
         --quiet 2>/dev/null || true
     print_step "Granted: Model Garden User (roles/aiplatform.modelGardenUser)"
 
-    # Create key file
+    # Create key file in ~/.cortex-agent/
     echo ""
     echo "Creating key file..."
+    
+    # Ensure directory exists
+    mkdir -p "$CORTEX_DIR"
+    chmod 700 "$CORTEX_DIR"
+    
     if [ -f "$KEY_FILE" ]; then
         print_warning "Key file already exists, backing up to ${KEY_FILE}.bak"
         mv "$KEY_FILE" "${KEY_FILE}.bak"
@@ -229,12 +238,6 @@ create_service_account() {
     chmod 600 "$KEY_FILE"
     print_step "Key file permissions set (600)"
 
-    # Generate access token
-    echo ""
-    echo "Generating access token..."
-    gcloud auth activate-service-account --key-file="$KEY_FILE" 2>/dev/null
-    ACCESS_TOKEN=$(gcloud auth print-access-token 2>/dev/null)
-
     # Print summary
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
@@ -248,27 +251,25 @@ create_service_account() {
     echo "  $sa_email"
     echo ""
     echo -e "${YELLOW}Key File:${NC}"
-    echo "  $(pwd)/$KEY_FILE"
-    echo ""
-    echo -e "${YELLOW}Access Token (expires in 1 hour):${NC}"
-    echo "  ${ACCESS_TOKEN:0:50}..."
+    echo "  $KEY_FILE"
     echo ""
     echo -e "${BLUE}═══════════════════════════════════════════════════════════${NC}"
     echo ""
+    echo -e "${GREEN}Cortex Agent will automatically detect the key file!${NC}"
+    echo ""
     echo "To use in Cortex Agent:"
     echo "  1. Open Settings (Menu → Settings)"
-    echo "  2. Paste the access token in 'API Key'"
-    echo "  3. Enter '$project_id' as 'Project ID'"
-    echo "  4. Select 'Vertex AI' as the endpoint"
+    echo "  2. Enter '$project_id' as 'Project ID'"
+    echo "  3. Select 'Vertex AI' as the endpoint"
+    echo "  4. Leave 'API Key' empty - auto-refresh is enabled!"
     echo ""
-    echo "To refresh the token later:"
-    echo "  gcloud auth activate-service-account --key-file=$KEY_FILE"
-    echo "  gcloud auth print-access-token"
+    echo "The app automatically uses: $KEY_FILE"
+    echo "Tokens are refreshed automatically - no manual refresh needed!"
     echo ""
     echo "To remove this service account:"
     echo "  $0 --remove $project_id $sa_name"
     echo ""
-    echo -e "${RED}IMPORTANT:${NC} Keep $KEY_FILE secure and never commit it to git!"
+    echo -e "${RED}IMPORTANT:${NC} Keep $KEY_FILE secure!"
     echo ""
 
     # Add to .gitignore if not already there
@@ -281,10 +282,25 @@ create_service_account() {
 }
 
 # Parse arguments
-if [ "$1" == "--remove" ]; then
-    REMOVE_MODE=true
-    shift
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --remove)
+            REMOVE_MODE=true
+            shift
+            ;;
+        --account)
+            GCLOUD_ACCOUNT="$2"
+            shift 2
+            ;;
+        -*)
+            print_error "Unknown option: $1"
+            show_usage
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
 
 if [ -z "$1" ]; then
     show_usage
@@ -292,6 +308,12 @@ fi
 
 PROJECT_ID="$1"
 SA_NAME="${2:-cortex-agent-vertex}"
+
+# Set account if specified
+if [ -n "$GCLOUD_ACCOUNT" ]; then
+    echo "Using account: $GCLOUD_ACCOUNT"
+    gcloud config set account "$GCLOUD_ACCOUNT" 2>/dev/null
+fi
 
 if [ "$REMOVE_MODE" = true ]; then
     remove_service_account "$PROJECT_ID" "$SA_NAME"

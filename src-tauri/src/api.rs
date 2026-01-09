@@ -58,7 +58,13 @@ pub async fn send_chat_message(
             request = request.header("x-goog-api-key", &api_key);
         }
         "vertex_ai" => {
-            request = request.header("Authorization", format!("Bearer {}", api_key));
+            // Use provided API key, or auto-fetch from service account
+            let token = if api_key.is_empty() {
+                crate::auth::get_access_token().await?
+            } else {
+                api_key.clone()
+            };
+            request = request.header("Authorization", format!("Bearer {}", token));
         }
         "openrouter" => {
             request = request
@@ -247,6 +253,7 @@ fn build_payload(
             include_thoughts,
             attached_file,
             endpoint,
+            model_id,
         ),
         "openrouter" | "xai" | "kilocode" => build_openai_payload(
             prompt,
@@ -344,6 +351,7 @@ fn build_google_payload(
     include_thoughts: bool,
     attached_file: Option<&AttachedFile>,
     endpoint: &str,
+    model_id: &str,
 ) -> Result<Value, String> {
     let mut contents: Vec<Value> = history
         .iter()
@@ -388,11 +396,18 @@ fn build_google_payload(
         "maxOutputTokens": 65536
     });
 
+    // Only add thinking config for models that support it
+    let supports_thinking = model_id.contains("thinking") || 
+                            model_id.contains("gemini-3") || 
+                            model_id.contains("gemini-2.0-flash-thinking");
+    
     if let Some(level) = thinking_level {
-        generation_config["thinkingConfig"] = json!({
-            "includeThoughts": include_thoughts,
-            "thinkingLevel": level
-        });
+        if supports_thinking && level != "none" {
+            generation_config["thinkingConfig"] = json!({
+                "includeThoughts": include_thoughts,
+                "thinkingLevel": level
+            });
+        }
     }
 
     let mut payload = json!({

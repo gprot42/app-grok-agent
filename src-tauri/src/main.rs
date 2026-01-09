@@ -1,6 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod api;
+mod auth;
 mod storage;
 
 use serde::{Deserialize, Serialize};
@@ -149,6 +150,21 @@ async fn save_image_to_project(project_path: String, filename: String, image_bas
     storage::save_image_to_project(&project_path, &filename, &image_base64).await
 }
 
+#[tauri::command]
+fn has_service_account() -> bool {
+    auth::has_service_account_key()
+}
+
+#[tauri::command]
+fn get_service_account_project_id() -> Option<String> {
+    auth::get_project_id_from_key()
+}
+
+#[tauri::command]
+async fn get_vertex_token() -> Result<String, String> {
+    auth::get_access_token().await
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
@@ -169,6 +185,9 @@ fn main() {
             list_projects,
             get_project_path,
             save_image_to_project,
+            has_service_account,
+            get_service_account_project_id,
+            get_vertex_token,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

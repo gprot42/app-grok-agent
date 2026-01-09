@@ -47,3 +47,4 @@ venv/
 coverage/
 .pytest_cache/
 .mypy_cache/
+vertex-key.json

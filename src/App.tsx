@@ -30,6 +30,7 @@ function App() {
     clearMessages,
     createSession,
     deleteSession,
+    stopGeneration,
     clearImages: _clearImages,
   } = useChat();
 
@@ -125,7 +126,7 @@ function App() {
   const currentModel = MODELS[selectedModel];
 
   return (
-    <div className="min-h-screen flex flex-col theme-bg">
+    <div className="h-screen flex flex-col theme-bg overflow-hidden">
       <Header
         theme={settings.theme}
         onThemeChange={handleThemeChange}
@@ -207,6 +208,7 @@ function App() {
               onShowRawJsonChange={handleShowRawJsonChange}
               onSendMessage={sendMessage}
               onClearMessages={clearMessages}
+              onStopGeneration={stopGeneration}
             />
           </>
         ) : activeTab === "image" ? (
@@ -385,11 +387,10 @@ function SessionTabs({
       {sessions.map((session) => (
         <div
           key={session.id}
-          className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${
-            activeSessionId === session.id
-              ? "theme-accent-bg text-white"
-              : "theme-hover theme-text"
-          }`}
+          className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm cursor-pointer transition-colors ${activeSessionId === session.id
+            ? "theme-accent-bg text-white"
+            : "theme-hover theme-text"
+            }`}
           onClick={() => onSelectSession(session.id)}
         >
           <span className="truncate max-w-[100px]">{session.name}</span>
@@ -399,9 +400,8 @@ function SessionTabs({
                 e.stopPropagation();
                 onDeleteSession(session.id);
               }}
-              className={`opacity-0 group-hover:opacity-100 transition-opacity ${
-                activeSessionId === session.id ? "text-white/70 hover:text-white" : "theme-text-muted"
-              }`}
+              className={`opacity-0 group-hover:opacity-100 transition-opacity ${activeSessionId === session.id ? "text-white/70 hover:text-white" : "theme-text-muted"
+                }`}
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

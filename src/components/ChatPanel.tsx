@@ -41,6 +41,7 @@ interface ChatPanelProps {
     attachedFile?: { path: string; data: string; mimeType: string }
   ) => Promise<string | undefined>;
   onClearMessages: () => void;
+  onStopGeneration: () => void;
 }
 
 export function ChatPanel({
@@ -64,6 +65,7 @@ export function ChatPanel({
   onShowRawJsonChange,
   onSendMessage,
   onClearMessages,
+  onStopGeneration,
 }: ChatPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [attachedFile, setAttachedFile] = useState<{
@@ -132,7 +134,7 @@ export function ChatPanel({
         const fileData = await readFile(selected);
         const base64 = btoa(String.fromCharCode(...fileData));
         const ext = selected.split(".").pop()?.toLowerCase() || "";
-        
+
         let mimeType = "application/octet-stream";
         if (["png"].includes(ext)) mimeType = "image/png";
         else if (["jpg", "jpeg"].includes(ext)) mimeType = "image/jpeg";
@@ -212,7 +214,7 @@ export function ChatPanel({
             Start a conversation by typing a message below
           </div>
         )}
-        
+
         {messages.map((msg, idx) => (
           <div
             key={idx}
@@ -220,11 +222,10 @@ export function ChatPanel({
           >
             <div className="group relative max-w-[80%]">
               <div
-                className={`rounded-2xl px-4 py-3 ${
-                  msg.role === "user"
-                    ? "bg-[var(--accent)] text-white"
-                    : "theme-surface border theme-border theme-text"
-                }`}
+                className={`rounded-2xl px-4 py-3 ${msg.role === "user"
+                  ? "bg-[var(--accent)] text-white"
+                  : "theme-surface border theme-border theme-text"
+                  }`}
               >
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
                   {msg.content}
@@ -335,7 +336,7 @@ export function ChatPanel({
           </div>
         )}
 
-        <div className="flex gap-3 items-end">
+        <div className="relative">
           <TextArea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
@@ -343,16 +344,30 @@ export function ChatPanel({
             placeholder="Enter your prompt... (Ctrl+Enter to send)"
             rows={3}
             autoResize
-            className="flex-1 min-h-[80px] max-h-[200px]"
+            className="w-full min-h-[100px] max-h-[200px] pr-24"
           />
-          <Button
-            variant="primary"
-            onClick={handleSend}
-            disabled={isLoading || (!prompt.trim() && !attachedFile)}
-            className="h-[80px] px-6"
-          >
-            {isLoading ? "..." : "Send"}
-          </Button>
+          {isLoading ? (
+            <button
+              onClick={onStopGeneration}
+              className="absolute right-3 bottom-3 z-20 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg pointer-events-auto"
+              title="Stop generation"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <rect x="6" y="6" width="12" height="12" rx="2" />
+              </svg>
+            </button>
+          ) : (
+            <button
+              onClick={handleSend}
+              disabled={!prompt.trim() && !attachedFile}
+              className="absolute right-3 bottom-3 z-20 p-3 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg pointer-events-auto"
+              title="Send (Ctrl+Enter)"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+              </svg>
+            </button>
+          )}
         </div>
 
         <div className="flex items-center justify-between">

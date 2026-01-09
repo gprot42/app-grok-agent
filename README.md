@@ -1,12 +1,13 @@
 # Cortex Agent v0.0.1
 
-A modern desktop AI assistant for interacting with Large Language Models on **Google Cloud Vertex AI** and **AI Studio**, built with Tauri, React, and Rust.
+A modern desktop AI assistant for interacting with Large Language Models on
+**Google Cloud Vertex AI** and **AI Studio**, built with Tauri, React, and Rust.
 
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Backend**: Tauri 2.0 (Rust)
-- **Package Manager**: pnpm
+- **Package Manager**: bun (recommended), pnpm, or npm
 
 ## Features
 
@@ -45,8 +46,8 @@ A modern desktop AI assistant for interacting with Large Language Models on **Go
 ./run.sh
 
 # Or manually:
-pnpm install
-pnpm tauri:dev
+bun install
+bun run tauri:dev
 
 # Build DMG
 ./build-dmg.sh
@@ -57,9 +58,9 @@ pnpm tauri:dev
 
 ## Requirements
 
-- Node.js 18+
+- Node.js 18+ (or bun)
 - Rust 1.70+
-- pnpm (or npm/yarn)
+- bun, pnpm, or npm
 - Google Cloud credentials (for Vertex AI)
 - API key (for AI Studio)
 

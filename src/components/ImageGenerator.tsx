@@ -104,8 +104,8 @@ export function ImageGenerator({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin relative z-0">
         {generatedImages.length === 0 && !isLoading && !sourceImage && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-tokyo-muted gap-4">
             <div className="text-6xl">🍌</div>
@@ -190,17 +190,24 @@ export function ImageGenerator({
         )}
       </div>
 
-      <div className="border-t border-gray-200 dark:border-tokyo-border p-4 space-y-3">
+      <div className="border-t border-gray-200 dark:border-tokyo-border p-4 space-y-3 relative z-10 bg-white dark:bg-tokyo-bg">
         <TextArea
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              console.log("Keyboard shortcut triggered");
+              handleGenerate();
+            }
+          }}
           placeholder={
             sourceImage
-              ? "Describe how to edit this image... (e.g., 'add a sunset background', 'make it look like a painting')"
-              : "Describe the image you want to create..."
+              ? "Describe how to edit this image... (Ctrl+Enter)"
+              : "Describe the image you want to create... (Ctrl+Enter)"
           }
           rows={3}
-          className="w-full"
+          className="w-full min-h-[100px]"
         />
 
         <div className="flex items-center justify-between">
@@ -219,21 +226,23 @@ export function ImageGenerator({
               </span>
             )}
           </div>
-
           <div className="flex items-center gap-3">
-            <div className="text-xs text-gray-500 dark:text-tokyo-muted">
-              Nano Banana Pro
-            </div>
+            {!apiKey && (
+              <span className="text-xs text-amber-600 dark:text-amber-400">
+                ⚠️ AI Studio API key required
+              </span>
+            )}
+            {apiKey && !prompt.trim() && (
+              <span className="text-xs text-gray-500 dark:text-gray-400">
+                Enter a description
+              </span>
+            )}
             <Button
               variant="primary"
               onClick={handleGenerate}
               disabled={isLoading || !prompt.trim() || !apiKey}
             >
-              {isLoading
-                ? "Processing..."
-                : sourceImage
-                ? "Edit Image"
-                : "Generate"}
+              {isLoading ? "Processing..." : sourceImage ? "Edit Image" : "Generate"}
             </Button>
           </div>
         </div>

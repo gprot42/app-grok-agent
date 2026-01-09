@@ -2,6 +2,22 @@
 
 This guide explains how to set up a Google Cloud service account for using Vertex AI with Cortex Agent.
 
+## Authentication Methods
+
+Cortex Agent supports multiple authentication methods depending on which endpoint you use:
+
+| Method                           | Expires    | Vertex AI | AI Studio | Setup Complexity |
+|----------------------------------|------------|-----------|-----------|------------------|
+| AI Studio API Key                | ❌ Never   | ❌ No     | ✅ Yes    | Simple           |
+| Service Account (auto-refresh)   | ❌ Never*  | ✅ Yes    | ❌ No     | One-time setup   |
+| Access Token (manual)            | ⏱️ 1 hour  | ✅ Yes    | ❌ No     | Manual refresh   |
+
+*The service account key file doesn't expire; access tokens are refreshed automatically.
+
+**Recommendation:**
+- For **AI Studio** models (Gemini) → Use an [AI Studio API Key](ai-studio-setup.md) (simplest)
+- For **Vertex AI** models (Claude, Gemini) → Use a **Service Account** (this guide)
+
 ## Prerequisites
 
 - A Google Cloud account with billing enabled
@@ -19,8 +35,8 @@ Run the provided script to automatically create a service account:
 This will:
 1. Create a service account named `cortex-agent-vertex`
 2. Grant the required Vertex AI permissions
-3. Generate and download a JSON key file
-4. Display the access token for use in Cortex Agent
+3. Save the JSON key file to `~/.cortex-agent/vertex-key.json`
+4. The app will automatically detect and use the key!
 
 ## Manual Setup
 
@@ -63,43 +79,32 @@ gcloud projects add-iam-policy-binding $PROJECT_ID \
 ### Step 5: Create and Download Key
 
 ```bash
-gcloud iam service-accounts keys create vertex-key.json \
+gcloud iam service-accounts keys create ~/.cortex-agent/vertex-key.json \
     --iam-account=cortex-agent-vertex@${PROJECT_ID}.iam.gserviceaccount.com
-```
 
-### Step 6: Generate Access Token
-
-```bash
-# Activate the service account
-gcloud auth activate-service-account \
-    --key-file=vertex-key.json
-
-# Generate access token
-gcloud auth print-access-token
+# Set secure permissions
+chmod 600 ~/.cortex-agent/vertex-key.json
 ```
 
 ## Using in Cortex Agent
 
+Once the key file is saved to `~/.cortex-agent/vertex-key.json`, the app will **automatically detect it**.
+
 1. Open Cortex Agent
 2. Click **Menu** → **Settings**
-3. In the **API Key** field, paste the access token from the previous step
-4. In the **Project ID** field, enter your Google Cloud project ID
-5. Select **Vertex AI** as the endpoint
+3. In the **Project ID** field, enter your Google Cloud project ID
+4. Select **Vertex AI** as the endpoint
+5. Leave **API Key** empty - auto-refresh is enabled!
 
-## Token Refresh
+> **Note:** Tokens are refreshed automatically. No manual token management needed!
 
-Access tokens expire after 1 hour. To refresh:
+## How Auto-Refresh Works
 
-```bash
-gcloud auth print-access-token
-```
-
-For automated token refresh, consider using application default credentials:
-
-```bash
-export GOOGLE_APPLICATION_CREDENTIALS="/path/to/vertex-key.json"
-gcloud auth application-default print-access-token
-```
+The app automatically:
+1. Detects the key file at `~/.cortex-agent/vertex-key.json`
+2. Generates a JWT signed with the service account private key
+3. Exchanges it for an access token with Google's OAuth server
+4. Caches the token and refreshes it before expiry (every ~55 minutes)
 
 ## Available Models on Vertex AI
 
