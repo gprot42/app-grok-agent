@@ -228,9 +228,14 @@ export function ChatPanel({
             <div className="group relative max-w-[80%]">
               <div
                 className={`rounded-2xl px-4 py-3 ${msg.role === "user"
-                  ? "bg-[var(--accent)] text-white"
-                  : "theme-surface border theme-border theme-text"
+                  ? "text-white"
+                  : "theme-text"
                   }`}
+                style={{
+                  backgroundColor: msg.role === "user"
+                    ? 'var(--user-message-bg, var(--accent))'
+                    : 'var(--assistant-message-bg, var(--bg-surface))'
+                }}
               >
                 <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">
                   {msg.content}

@@ -72,6 +72,26 @@ function App() {
     }
   }, [selectedModel]);
 
+  // Apply custom colors as CSS variables
+  useEffect(() => {
+    const root = document.documentElement;
+    if (settings.customColors?.accentColor) {
+      root.style.setProperty('--accent', settings.customColors.accentColor);
+    } else {
+      root.style.removeProperty('--accent');
+    }
+    if (settings.customColors?.userMessageBg) {
+      root.style.setProperty('--user-message-bg', settings.customColors.userMessageBg);
+    } else {
+      root.style.removeProperty('--user-message-bg');
+    }
+    if (settings.customColors?.assistantMessageBg) {
+      root.style.setProperty('--assistant-message-bg', settings.customColors.assistantMessageBg);
+    } else {
+      root.style.removeProperty('--assistant-message-bg');
+    }
+  }, [settings.customColors]);
+
   useEffect(() => {
     if (settings.activeProject) {
       setActiveProject(settings.activeProject);

@@ -50,6 +50,11 @@ export interface AppSettings {
   projectId: string;
   activeProject?: string;
   showRawJson?: boolean;
+  customColors?: {
+    accentColor?: string;
+    userMessageBg?: string;
+    assistantMessageBg?: string;
+  };
 }
 
 export const FONT_OPTIONS = [

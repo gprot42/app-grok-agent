@@ -96,6 +96,63 @@ export function SettingsPanel({
             />
           </div>
 
+          <div className="space-y-4">
+            <h3 className="text-sm font-medium text-gray-700 dark:text-tokyo-muted uppercase tracking-wider">
+              Custom Colors
+            </h3>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-600 dark:text-tokyo-muted">
+                  Accent Color
+                </label>
+                <input
+                  type="color"
+                  value={settings.customColors?.accentColor || "#6366f1"}
+                  onChange={(e) => onUpdateSettings({
+                    customColors: { ...settings.customColors, accentColor: e.target.value }
+                  })}
+                  className="w-full h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-600 dark:text-tokyo-muted">
+                  Your Messages
+                </label>
+                <input
+                  type="color"
+                  value={settings.customColors?.userMessageBg || "#6366f1"}
+                  onChange={(e) => onUpdateSettings({
+                    customColors: { ...settings.customColors, userMessageBg: e.target.value }
+                  })}
+                  className="w-full h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600"
+                />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <label className="text-sm text-gray-600 dark:text-tokyo-muted">
+                  AI Messages
+                </label>
+                <input
+                  type="color"
+                  value={settings.customColors?.assistantMessageBg || "#f3f4f6"}
+                  onChange={(e) => onUpdateSettings({
+                    customColors: { ...settings.customColors, assistantMessageBg: e.target.value }
+                  })}
+                  className="w-full h-10 rounded cursor-pointer border border-gray-300 dark:border-gray-600"
+                />
+              </div>
+            </div>
+
+            <button
+              onClick={() => onUpdateSettings({ customColors: undefined })}
+              className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+            >
+              Reset to defaults
+            </button>
+          </div>
+
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
             <h4 className="font-medium text-amber-800 dark:text-amber-200 mb-2">
               ⚠️ Disclaimer
