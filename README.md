@@ -1,36 +1,58 @@
-# MEX - Model Explorer v0.0.1
+# Cortex Agent v0.0.1
 
-A modern desktop application for interacting with Large Language Models on **Google Cloud Vertex AI** and **AI Studio**, built with Tauri, React, and TypeScript.
+A modern desktop AI assistant for interacting with Large Language Models on **Google Cloud Vertex AI** and **AI Studio**, built with Tauri, React, and Rust.
 
 ## Tech Stack
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
 - **Backend**: Tauri 2.0 (Rust)
-- **Package Manager**: pnpm (Bun-compatible)
+- **Package Manager**: pnpm
 
 ## Features
 
-- **Multi-Model Support**: Claude (4.5 Haiku, Sonnet, Opus) and Gemini (2.5, 3 Pro/Flash)
-- **Dual Endpoints**: Switch between Vertex AI and AI Studio
-- **Nano Banana Pro**: AI image generation and editing - load images to manipulate with prompts
-- **File Upload**: Attach text files, images, and PDFs with prompts
-- **1M Context Window**: Available for Claude 4.5 Sonnet
-- **Memory Tool**: Optional memory support for Claude 4.5 Sonnet
-- **Deep Thinking**: Gemini 3 Pro Deep Think with thinking levels
-- **Theme System**: Light, Tokyo Night, and Dark themes
-- **Secure Storage**: Encrypted API key storage tied to machine ID
+### AI Models
+- **Claude 4.5**: Haiku, Sonnet, Opus with memory support
+- **Gemini 2.5/3**: Pro and Flash variants with grounding
+- **Gemini Deep Research**: Multi-step web research agent
+- **Nano Banana Pro**: AI image generation and editing
+
+### Capabilities
+- **Dual Endpoints**: Vertex AI, AI Studio, or Custom API
+- **1M Context Window**: Extended context for Claude and Gemini
+- **Memory Tool**: Claude models remember across conversations
+- **Deep Thinking**: Extended reasoning for complex problems
+- **Grounding**: Web search for up-to-date information
+- **File Attachments**: Text, images, and PDFs
+
+### Interface
+- **Multiple Sessions**: Tabbed prompt sessions
+- **Project Management**: Organize outputs into folders
+- **Token Tracking**: Real-time usage with cost estimation
+- **Three Themes**: Light, Tokyo Night, Dark
+- **Customizable Fonts**: Multiple font options
+
+## Token Approximation
+
+- 1 token ≈ 4 characters (English)
+- 1 token ≈ 0.75 words
+- 1,000 tokens ≈ 750 words (1-2 pages)
+- 1M tokens ≈ 750,000 words
 
 ## Quick Start
 
 ```bash
-# Install dependencies
-pnpm install
-
 # Run development server
+./run.sh
+
+# Or manually:
+pnpm install
 pnpm tauri:dev
 
-# Build for production
-pnpm tauri:build
+# Build DMG
+./build-dmg.sh
+
+# Build and create GitHub release
+./build-dmg.sh --release
 ```
 
 ## Requirements
@@ -41,20 +63,26 @@ pnpm tauri:build
 - Google Cloud credentials (for Vertex AI)
 - API key (for AI Studio)
 
-## API Key Storage
+## Secure Storage
 
-Your API key is encrypted using AES-256-GCM and stored securely at `~/.mex-model-explorer/api_key.enc`. The encryption key is derived from your machine's hardware UUID, making the stored key non-transferable between computers.
+API keys are encrypted using AES-256-GCM and stored at `~/.cortex-agent/`. The encryption key is derived from your machine's hardware UUID, making stored keys non-transferable.
 
 ## Keyboard Shortcuts
 
-- **Ctrl+Enter**: Send message
-- **Ctrl+T**: New tab (planned)
-- **Ctrl+W**: Close tab (planned)
+| Shortcut | Action |
+|----------|--------|
+| Ctrl/Cmd + Enter | Send message |
+| Ctrl/Cmd + T | New prompt session |
+| Ctrl/Cmd + W | Close current session |
+
+## Standalone App
+
+The built DMG contains a self-contained `.app` bundle with all dependencies embedded. No Homebrew or external runtime required.
 
 ## Disclaimer
 
-This is not an official Google product. All pricing shown is fictional and for demonstration only.
+This is not an official Google product. All pricing shown is for estimation only.
 
 ---
 
-**Version 0.0.1** - Tauri Edition
+**Version 0.0.1** - Built with Tauri, React, and Rust
