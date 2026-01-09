@@ -56,7 +56,7 @@ export function Header({
             </div>
           )}
 
-          <div className="flex bg-gray-100 dark:bg-tokyo-bg rounded-lg p-1">
+          <div className="flex gap-1 bg-gray-100 dark:bg-tokyo-bg rounded-lg p-1">
             <button
               onClick={() => onTabChange("chat")}
               className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
