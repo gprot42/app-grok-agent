@@ -56,33 +56,33 @@ export function Header({
             </div>
           )}
 
-          <div className="flex gap-1 bg-gray-100 dark:bg-tokyo-bg rounded-lg p-1">
+          <div className="flex gap-2 bg-gray-100 dark:bg-tokyo-bg rounded-lg p-1.5">
             <button
               onClick={() => onTabChange("chat")}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
                 activeTab === "chat"
-                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm"
-                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text"
+                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm border-gray-300 dark:border-tokyo-border"
+                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text border-transparent hover:bg-gray-50 dark:hover:bg-tokyo-surface/50"
               }`}
             >
               Prompt
             </button>
             <button
               onClick={() => onTabChange("image")}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
                 activeTab === "image"
-                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm"
-                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text"
+                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm border-gray-300 dark:border-tokyo-border"
+                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text border-transparent hover:bg-gray-50 dark:hover:bg-tokyo-surface/50"
               }`}
             >
               Image
             </button>
             <button
               onClick={() => onTabChange("research")}
-              className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
                 activeTab === "research"
-                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm"
-                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text"
+                  ? "bg-white dark:bg-tokyo-surface text-gray-900 dark:text-tokyo-text shadow-sm border-gray-300 dark:border-tokyo-border"
+                  : "text-gray-600 dark:text-tokyo-muted hover:text-gray-900 dark:hover:text-tokyo-text border-transparent hover:bg-gray-50 dark:hover:bg-tokyo-surface/50"
               }`}
             >
               Deep Research
