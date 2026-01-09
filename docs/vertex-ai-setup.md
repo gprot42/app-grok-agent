@@ -151,7 +151,22 @@ gcloud auth print-access-token
 
 ## Cleanup
 
-To remove the service account when no longer needed:
+### Automated Cleanup
+
+Use the setup script with the `--remove` flag:
+
+```bash
+./scripts/setup-vertex-sa.sh --remove YOUR_PROJECT_ID
+```
+
+This will:
+1. Delete the service account
+2. Remove IAM policy bindings
+3. Optionally delete the local key file
+
+### Manual Cleanup
+
+To manually remove the service account:
 
 ```bash
 gcloud iam service-accounts delete \
