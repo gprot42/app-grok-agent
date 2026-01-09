@@ -2,7 +2,8 @@ import { useState } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readFile, writeFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, TextArea } from "./index";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 
 interface ImageGeneratorProps {
   apiKey: string;
@@ -259,7 +260,6 @@ export function ImageGenerator({
                     <option value="webp">WebP</option>
                   </select>
                   <Button
-                    variant="primary"
                     size="sm"
                     onClick={() => handleSaveImage(img, idx)}
                   >
@@ -305,10 +305,10 @@ export function ImageGenerator({
       </div>
 
       <div className="border-t border-gray-200 dark:border-tokyo-border p-4 space-y-3 relative z-10 bg-white dark:bg-tokyo-bg">
-        <TextArea
+        <Textarea
           value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => {
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+          onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
             if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
               e.preventDefault();
               console.log("Keyboard shortcut triggered");
@@ -321,7 +321,7 @@ export function ImageGenerator({
               : "Describe the image you want to create... (Ctrl+Enter)"
           }
           rows={3}
-          className="w-full min-h-[100px]"
+          className="w-full min-h-[100px] resize-none"
         />
 
         <div className="flex items-center justify-between">
@@ -352,7 +352,6 @@ export function ImageGenerator({
               </span>
             )}
             <Button
-              variant="primary"
               onClick={handleGenerate}
               disabled={isLoading || !prompt.trim() || !apiKey}
             >

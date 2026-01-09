@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, TextArea } from "./index";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { ResearchTask } from "../hooks/useDeepResearch";
 
 interface DeepResearchPanelProps {
@@ -214,12 +215,12 @@ export function DeepResearchPanel({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 theme-surface">
-        <TextArea
+        <Textarea
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
           placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
           rows={3}
-          className="w-full"
+          className="w-full resize-none"
         />
 
         <div className="flex items-center justify-between">
@@ -274,7 +275,6 @@ export function DeepResearchPanel({
               </span>
             )}
             <Button
-              variant="primary"
               onClick={handleResearch}
               disabled={!query.trim() || !apiKey}
             >

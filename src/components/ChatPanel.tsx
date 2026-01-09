@@ -3,7 +3,8 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
-import { Button, TextArea, Checkbox } from "./index";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Message, EndpointType, ModelConfig, TokenUsage } from "../types";
 
 interface ChatPanelProps {
@@ -302,11 +303,15 @@ export function ChatPanel({
             <span>Session: {formatTokens(totalTokens.input)} in / {formatTokens(totalTokens.output)} out ({formatCost(calculateCost(totalTokens.input, totalTokens.output))})</span>
           </div>
           <div className="flex items-center gap-3">
-            <Checkbox
-              label="Show Raw JSON"
-              checked={showRawJson}
-              onChange={(e) => onShowRawJsonChange(e.target.checked)}
-            />
+            <label className="flex items-center gap-2 text-xs cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showRawJson}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => onShowRawJsonChange(e.target.checked)}
+                className="rounded border-gray-300"
+              />
+              Show Raw JSON
+            </label>
             {showRawJson && lastRawJson && (
               <button
                 onClick={() => setShowJsonModal(true)}
@@ -337,14 +342,13 @@ export function ChatPanel({
         )}
 
         <div className="relative">
-          <TextArea
+          <Textarea
             value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter your prompt... (Ctrl+Enter to send)"
             rows={3}
-            autoResize
-            className="w-full min-h-[100px] max-h-[200px] pr-24"
+            className="w-full min-h-[100px] max-h-[200px] pr-24 resize-none"
           />
           {isLoading ? (
             <button
