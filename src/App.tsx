@@ -297,9 +297,9 @@ function AboutPanel({ onClose }: { onClose: () => void }) {
               <ul className="text-sm text-gray-600 dark:text-tokyo-muted space-y-1">
                 <li>• Claude 4 Opus, Sonnet, Haiku - Anthropic's latest models</li>
                 <li>• Gemini 2.5/3 Pro/Flash - Google's multimodal AI</li>
-                <li>• Grok 3/3 Fast/3 Mini - xAI's real-time models</li>
+                <li>• Gemini 3 Pro Deep Think - Extended reasoning (AI Studio)</li>
+                <li>• Grok 4.1/3/3 Fast/3 Mini - xAI's real-time models</li>
                 <li>• GPT-4o, Llama 405B, DeepSeek R1 - via OpenRouter</li>
-                <li>• Gemini Deep Research - Multi-step web research agent</li>
                 <li>• Nano Banana Pro - Image generation and editing</li>
               </ul>
             </div>
@@ -337,6 +337,14 @@ function AboutPanel({ onClose }: { onClose: () => void }) {
                 <li>• Memory - Claude models remember across conversations</li>
                 <li>• Grounding - Web search for up-to-date information</li>
                 <li>• Deep Thinking - Extended reasoning for complex problems</li>
+              </ul>
+            </div>
+
+            <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-3">
+              <h4 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Deep Think vs Deep Research</h4>
+              <ul className="text-sm text-purple-700 dark:text-purple-300 space-y-2">
+                <li><strong>🧠 Deep Think</strong> - A model capability that enables extended internal reasoning before responding. Available on Gemini 3 Pro Deep Think, DeepSeek R1, and Grok models. Uses chain-of-thought to solve complex problems. Select from Prompt tab with AI Studio endpoint.</li>
+                <li><strong>🔬 Deep Research</strong> - A specialized research agent (separate tab) that performs multi-step web searches, synthesizes sources, and produces comprehensive reports. Uses Gemini 2.5 Pro with autonomous browsing. Supports file attachments for context.</li>
               </ul>
             </div>
 
