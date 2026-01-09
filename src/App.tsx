@@ -31,6 +31,7 @@ function App() {
     clearMessages,
     createSession,
     deleteSession,
+    renameSession,
     stopGeneration,
     deleteImage,
     clearImages: _clearImages,
@@ -190,6 +191,7 @@ function App() {
               onSelectSession={setActiveSessionId}
               onCreateSession={createSession}
               onDeleteSession={deleteSession}
+              onRenameSession={renameSession}
             />
             <ChatPanel
               messages={messages}
@@ -378,13 +380,31 @@ function SessionTabs({
   onSelectSession,
   onCreateSession,
   onDeleteSession,
+  onRenameSession,
 }: {
   sessions: ChatSession[];
   activeSessionId: string;
   onSelectSession: (id: string) => void;
   onCreateSession: () => void;
   onDeleteSession: (id: string) => void;
+  onRenameSession: (id: string, name: string) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+
+  const handleRightClick = (e: React.MouseEvent, session: ChatSession) => {
+    e.preventDefault();
+    setEditingId(session.id);
+    setEditName(session.name);
+  };
+
+  const handleRenameSubmit = (id: string) => {
+    if (editName.trim()) {
+      onRenameSession(id, editName.trim());
+    }
+    setEditingId(null);
+  };
+
   return (
     <div className="flex items-center gap-1 px-4 py-2 theme-surface border-b theme-border overflow-x-auto">
       {sessions.map((session) => (
@@ -395,9 +415,26 @@ function SessionTabs({
             : "theme-hover theme-text"
             }`}
           onClick={() => onSelectSession(session.id)}
+          onContextMenu={(e) => handleRightClick(e, session)}
         >
-          <span className="truncate max-w-[100px]">{session.name}</span>
-          {sessions.length > 1 && (
+          {editingId === session.id ? (
+            <input
+              type="text"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              onBlur={() => handleRenameSubmit(session.id)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleRenameSubmit(session.id);
+                if (e.key === "Escape") setEditingId(null);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              autoFocus
+              className="w-24 px-1 py-0 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-white border rounded outline-none"
+            />
+          ) : (
+            <span className="truncate max-w-[100px]">{session.name}</span>
+          )}
+          {sessions.length > 1 && editingId !== session.id && (
             <button
               onClick={(e) => {
                 e.stopPropagation();

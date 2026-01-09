@@ -20,7 +20,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
           className="w-4 h-4 rounded border-gray-300 dark:border-tokyo-border text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 bg-white dark:bg-tokyo-surface cursor-pointer"
           {...props}
         />
-        <span className="text-sm theme-text">{label}</span>
+        <span className="text-base theme-text">{label}</span>
       </label>
     );
   }
