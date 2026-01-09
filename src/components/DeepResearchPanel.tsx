@@ -1,4 +1,6 @@
 import { useState, useRef } from "react";
+import { open } from "@tauri-apps/plugin-dialog";
+import { readFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
 import { invoke } from "@tauri-apps/api/core";
 import { Button, TextArea, Select } from "./index";
@@ -17,7 +19,8 @@ interface DeepResearchPanelProps {
       apiKey: string;
       projectId: string;
       thinkingLevel?: string;
-    }
+    },
+    attachedFile?: { path: string; data: string; mimeType: string }
   ) => Promise<string | undefined>;
 }
 
@@ -33,6 +36,12 @@ export function DeepResearchPanel({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [savedIdx, setSavedIdx] = useState<number | null>(null);
   const [thinkingLevel, setThinkingLevel] = useState("medium");
+  const [attachedFile, setAttachedFile] = useState<{
+    path: string;
+    data: string;
+    mimeType: string;
+    name: string;
+  } | null>(null);
   const resultsEndRef = useRef<HTMLDivElement>(null);
 
   const deepResearchModel = MODELS["gemini-deep-research"];
@@ -46,6 +55,10 @@ export function DeepResearchPanel({
   const handleResearch = async () => {
     if (!query.trim() || !apiKey) return;
 
+    const fileData = attachedFile
+      ? { path: attachedFile.path, data: attachedFile.data, mimeType: attachedFile.mimeType }
+      : undefined;
+
     const result = await onSendMessage(
       query,
       {
@@ -54,13 +67,55 @@ export function DeepResearchPanel({
         apiKey,
         projectId: "",
         thinkingLevel,
-      }
+      },
+      fileData
     );
 
     if (result) {
       setResults(prev => [...prev, result]);
       setQuery("");
+      setAttachedFile(null);
       resultsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
+  const handleAttachFile = async () => {
+    try {
+      const selected = await open({
+        multiple: false,
+        filters: [
+          { name: "All Files", extensions: ["*"] },
+          { name: "Documents", extensions: ["txt", "md", "pdf", "doc", "docx"] },
+          { name: "Data", extensions: ["json", "csv", "xml"] },
+          { name: "Images", extensions: ["png", "jpg", "jpeg", "gif", "webp"] },
+        ],
+      });
+
+      if (selected) {
+        const fileData = await readFile(selected);
+        const base64 = btoa(String.fromCharCode(...fileData));
+        const ext = selected.split(".").pop()?.toLowerCase() || "";
+
+        let mimeType = "application/octet-stream";
+        if (["png"].includes(ext)) mimeType = "image/png";
+        else if (["jpg", "jpeg"].includes(ext)) mimeType = "image/jpeg";
+        else if (["gif"].includes(ext)) mimeType = "image/gif";
+        else if (["webp"].includes(ext)) mimeType = "image/webp";
+        else if (["pdf"].includes(ext)) mimeType = "application/pdf";
+        else if (["txt", "md"].includes(ext)) mimeType = "text/plain";
+        else if (["json"].includes(ext)) mimeType = "application/json";
+        else if (["csv"].includes(ext)) mimeType = "text/csv";
+        else if (["xml"].includes(ext)) mimeType = "application/xml";
+
+        setAttachedFile({
+          path: selected,
+          data: base64,
+          mimeType,
+          name: selected.split("/").pop() || selected,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to attach file:", e);
     }
   };
 
@@ -109,7 +164,7 @@ export function DeepResearchPanel({
               <div className="text-xs mt-4 max-w-md text-center">
                 Enter a research question and the agent will search the web,
                 analyze multiple sources, and synthesize a comprehensive answer
-                with citations.
+                with citations. You can also attach files for context.
               </div>
             </div>
           </div>
@@ -185,6 +240,22 @@ export function DeepResearchPanel({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 theme-surface">
+        {attachedFile && (
+          <div className="flex items-center gap-2 text-sm">
+            <span className="px-2 py-1 bg-[var(--accent)]/10 theme-accent rounded">
+              {attachedFile.name}
+            </span>
+            <button
+              onClick={() => setAttachedFile(null)}
+              className="theme-text-muted hover:theme-text"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
         <TextArea
           value={query}
           onChange={(e) => setQuery(e.target.value)}
@@ -195,6 +266,9 @@ export function DeepResearchPanel({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button onClick={handleAttachFile} size="sm">
+              Attach File
+            </Button>
             {results.length > 0 && (
               <Button onClick={handleClear} size="sm">
                 Clear Results
