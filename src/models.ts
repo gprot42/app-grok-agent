@@ -88,6 +88,7 @@ export const MODELS: Record<string, ModelConfig> = {
     description: "Next-gen multimodal model with 2M+ input / 65k output tokens",
     pricing: { input: 0.0025, output: 0.015 },
     supportsGrounding: true,
+    defaultGrounding: true,
     endpointSupport: ["vertex_ai", "ai_studio"],
   },
   "gemini-3-pro-deep-think": {
@@ -120,6 +121,7 @@ export const MODELS: Record<string, ModelConfig> = {
     description: "Fast next-gen multimodal with 1M+ input tokens",
     pricing: { input: 0.0003, output: 0.0012 },
     supportsGrounding: true,
+    defaultGrounding: true,
     endpointSupport: ["vertex_ai", "ai_studio"],
   },
   "nano-banana-pro": {

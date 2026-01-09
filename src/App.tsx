@@ -60,6 +60,13 @@ function App() {
   }, [selectedEndpoint, selectedModel]);
 
   useEffect(() => {
+    const model = MODELS[selectedModel];
+    if (model?.defaultGrounding) {
+      setUseGrounding(true);
+    }
+  }, [selectedModel]);
+
+  useEffect(() => {
     if (settings.activeProject) {
       setActiveProject(settings.activeProject);
     }

@@ -24,6 +24,7 @@ export interface ModelConfig {
   supportsImageGeneration?: boolean;
   supportsDeepResearch?: boolean;
   defaultThinkingLevel?: string;
+  defaultGrounding?: boolean;
   endpointSupport: EndpointType[];
 }
 
