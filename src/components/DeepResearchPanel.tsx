@@ -29,7 +29,10 @@ export function DeepResearchPanel({
   const [saveFormat, setSaveFormat] = useState<"md" | "txt">("md");
   const [thinkingLevel, setThinkingLevel] = useState("medium");
   const [timeoutMinutes, setTimeoutMinutes] = useState(15);
+  const [textareaHeight, setTextareaHeight] = useState(80);
   const resultsEndRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const dragStartHeight = useRef<number>(0);
 
   // Real-time elapsed timer component
   function ElapsedTimer({ startedAt }: { startedAt: number }) {
@@ -246,16 +249,37 @@ export function DeepResearchPanel({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 theme-surface">
-        <div style={{ transform: 'rotate(180deg)' }}>
-          <Textarea
-            value={query}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
-            placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
-            rows={3}
-            className="w-full min-h-[80px] max-h-[300px] resize-y"
-            style={{ transform: 'rotate(180deg)' }}
-          />
+        {/* Resize handle at top */}
+        <div
+          className="flex justify-center cursor-ns-resize py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t transition-colors"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            dragStartY.current = e.clientY;
+            dragStartHeight.current = textareaHeight;
+            const handleMove = (moveEvent: MouseEvent) => {
+              const deltaY = dragStartY.current - moveEvent.clientY;
+              const newHeight = Math.max(60, Math.min(300, dragStartHeight.current + deltaY));
+              setTextareaHeight(newHeight);
+            };
+            const handleUp = () => {
+              document.removeEventListener('mousemove', handleMove);
+              document.removeEventListener('mouseup', handleUp);
+            };
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
+          }}
+          title="Drag to resize"
+        >
+          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
         </div>
+
+        <Textarea
+          value={query}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
+          placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
+          className="w-full resize-none"
+          style={{ height: `${textareaHeight}px`, minHeight: '60px', maxHeight: '300px' }}
+        />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

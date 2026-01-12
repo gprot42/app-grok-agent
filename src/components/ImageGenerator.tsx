@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { open, save } from "@tauri-apps/plugin-dialog";
 import { readFile, writeFile } from "@tauri-apps/plugin-fs";
 import { invoke } from "@tauri-apps/api/core";
@@ -32,6 +32,9 @@ export function ImageGenerator({
   } | null>(null);
   const [savedIdx, setSavedIdx] = useState<number | null>(null);
   const [imageFormat, setImageFormat] = useState<"png" | "jpg" | "webp">("png");
+  const [textareaHeight, setTextareaHeight] = useState(100);
+  const dragStartY = useRef<number>(0);
+  const dragStartHeight = useRef<number>(0);
 
   const handleLoadImage = async () => {
     try {
@@ -305,27 +308,48 @@ export function ImageGenerator({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 relative z-10 theme-surface">
-        <div style={{ transform: 'rotate(180deg)' }}>
-          <Textarea
-            value={prompt}
-            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
-            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-                e.preventDefault();
-                console.log("Keyboard shortcut triggered");
-                handleGenerate();
-              }
-            }}
-            placeholder={
-              sourceImage
-                ? "Describe how to edit this image... (Ctrl+Enter)"
-                : "Describe the image you want to create... (Ctrl+Enter)"
-            }
-            rows={3}
-            className="w-full min-h-[100px] max-h-[300px] resize-y"
-            style={{ transform: 'rotate(180deg)' }}
-          />
+        {/* Resize handle at top */}
+        <div
+          className="flex justify-center cursor-ns-resize py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t transition-colors"
+          onMouseDown={(e) => {
+            e.preventDefault();
+            dragStartY.current = e.clientY;
+            dragStartHeight.current = textareaHeight;
+            const handleMove = (moveEvent: MouseEvent) => {
+              const deltaY = dragStartY.current - moveEvent.clientY;
+              const newHeight = Math.max(60, Math.min(300, dragStartHeight.current + deltaY));
+              setTextareaHeight(newHeight);
+            };
+            const handleUp = () => {
+              document.removeEventListener('mousemove', handleMove);
+              document.removeEventListener('mouseup', handleUp);
+            };
+            document.addEventListener('mousemove', handleMove);
+            document.addEventListener('mouseup', handleUp);
+          }}
+          title="Drag to resize"
+        >
+          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
         </div>
+
+        <Textarea
+          value={prompt}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+          onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+              e.preventDefault();
+              console.log("Keyboard shortcut triggered");
+              handleGenerate();
+            }
+          }}
+          placeholder={
+            sourceImage
+              ? "Describe how to edit this image... (Ctrl+Enter)"
+              : "Describe the image you want to create... (Ctrl+Enter)"
+          }
+          className="w-full resize-none"
+          style={{ height: `${textareaHeight}px`, minHeight: '60px', maxHeight: '300px' }}
+        />
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

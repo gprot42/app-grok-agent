@@ -78,7 +78,10 @@ export function ChatPanel({
   const [copiedIdx, setCopiedIdx] = useState<number | null>(null);
   const [savedIdx, setSavedIdx] = useState<number | null>(null);
   const [showJsonModal, setShowJsonModal] = useState(false);
+  const [textareaHeight, setTextareaHeight] = useState(100);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef<number>(0);
+  const dragStartHeight = useRef<number>(0);
 
   const handleSend = async () => {
     if (!prompt.trim() && !attachedFile) return;
@@ -117,6 +120,26 @@ export function ChatPanel({
       e.preventDefault();
       handleSend();
     }
+  };
+
+  const handleResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault();
+    dragStartY.current = e.clientY;
+    dragStartHeight.current = textareaHeight;
+
+    const handleMove = (moveEvent: MouseEvent) => {
+      const deltaY = dragStartY.current - moveEvent.clientY;
+      const newHeight = Math.max(60, Math.min(400, dragStartHeight.current + deltaY));
+      setTextareaHeight(newHeight);
+    };
+
+    const handleUp = () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
   };
 
   const handleAttachFile = async () => {
@@ -350,27 +373,29 @@ export function ChatPanel({
           </div>
         )}
 
+        {/* Resize handle at top */}
         <div
-          className="relative"
-          style={{
-            transform: 'rotate(180deg)',
-          }}
+          className="flex justify-center cursor-ns-resize py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t transition-colors"
+          onMouseDown={handleResizeStart}
+          title="Drag to resize"
         >
+          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
+        </div>
+
+        <div className="relative">
           <Textarea
             value={prompt}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter your prompt... (Ctrl+Enter to send)"
-            rows={3}
-            className="w-full min-h-[100px] max-h-[400px] pr-24 resize-y"
-            style={{ transform: 'rotate(180deg)' }}
+            className="w-full pr-24 resize-none"
+            style={{ height: `${textareaHeight}px`, minHeight: '60px', maxHeight: '400px' }}
           />
           {isLoading ? (
             <button
               onClick={onStopGeneration}
-              className="absolute left-3 top-3 z-20 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg pointer-events-auto"
+              className="absolute right-3 bottom-3 z-20 p-3 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all shadow-lg pointer-events-auto"
               title="Stop generation"
-              style={{ transform: 'rotate(180deg)' }}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <rect x="6" y="6" width="12" height="12" rx="2" />
@@ -380,9 +405,8 @@ export function ChatPanel({
             <button
               onClick={handleSend}
               disabled={!prompt.trim() && !attachedFile}
-              className="absolute left-3 top-3 z-20 p-3 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg pointer-events-auto"
+              className="absolute right-3 bottom-3 z-20 p-3 rounded-xl bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg pointer-events-auto"
               title="Send (Ctrl+Enter)"
-              style={{ transform: 'rotate(180deg)' }}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
