@@ -246,13 +246,15 @@ export function DeepResearchPanel({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 theme-surface">
-        <Textarea
-          value={query}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
-          placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
-          rows={3}
-          className="w-full min-h-[80px] max-h-[300px] resize-none"
-        />
+        <div style={{ display: 'flex', flexDirection: 'column-reverse' }}>
+          <Textarea
+            value={query}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
+            placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
+            rows={3}
+            className="w-full min-h-[80px] max-h-[300px] resize-y"
+          />
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -350,14 +350,14 @@ export function ChatPanel({
           </div>
         )}
 
-        <div className="relative">
+        <div className="relative" style={{ display: 'flex', flexDirection: 'column-reverse' }}>
           <Textarea
             value={prompt}
             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Enter your prompt... (Ctrl+Enter to send)"
             rows={3}
-            className="w-full min-h-[100px] max-h-[400px] pr-24 resize-none"
+            className="w-full min-h-[100px] max-h-[400px] pr-24 resize-y"
           />
           {isLoading ? (
             <button

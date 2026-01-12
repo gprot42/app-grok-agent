@@ -305,24 +305,26 @@ export function ImageGenerator({
       </div>
 
       <div className="border-t theme-border p-4 space-y-3 relative z-10 theme-surface">
-        <Textarea
-          value={prompt}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
-          onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-            if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
-              e.preventDefault();
-              console.log("Keyboard shortcut triggered");
-              handleGenerate();
+        <div style={{ display: 'flex', flexDirection: 'column-reverse' }}>
+          <Textarea
+            value={prompt}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setPrompt(e.target.value)}
+            onKeyDown={(e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+              if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                console.log("Keyboard shortcut triggered");
+                handleGenerate();
+              }
+            }}
+            placeholder={
+              sourceImage
+                ? "Describe how to edit this image... (Ctrl+Enter)"
+                : "Describe the image you want to create... (Ctrl+Enter)"
             }
-          }}
-          placeholder={
-            sourceImage
-              ? "Describe how to edit this image... (Ctrl+Enter)"
-              : "Describe the image you want to create... (Ctrl+Enter)"
-          }
-          rows={3}
-          className="w-full min-h-[100px] max-h-[300px] resize-none"
-        />
+            rows={3}
+            className="w-full min-h-[100px] max-h-[300px] resize-y"
+          />
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
