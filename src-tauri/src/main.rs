@@ -175,6 +175,70 @@ async fn get_vertex_token() -> Result<String, String> {
     auth::get_access_token().await
 }
 
+#[tauri::command]
+async fn run_vertex_setup(project_id: String, remove: bool) -> Result<String, String> {
+    use std::process::Command;
+    use std::env;
+    
+    let script_path = if cfg!(debug_assertions) {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("scripts")
+            .join("01-setup-vertex-sa.sh")
+    } else {
+        let exe_path = env::current_exe().map_err(|e| e.to_string())?;
+        exe_path
+            .parent()
+            .unwrap()
+            .join("../Resources/scripts/01-setup-vertex-sa.sh")
+    };
+    
+    if !script_path.exists() {
+        return Err(format!("Setup script not found at: {:?}", script_path));
+    }
+    
+    let mut cmd = Command::new("bash");
+    cmd.arg(&script_path);
+    
+    if remove {
+        cmd.arg("--remove");
+    }
+    
+    cmd.arg(&project_id);
+    
+    let output = cmd.output().map_err(|e| format!("Failed to run script: {}", e))?;
+    
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    
+    if output.status.success() {
+        Ok(format!("{}\n{}", stdout, stderr))
+    } else {
+        Err(format!("Script failed:\n{}\n{}", stdout, stderr))
+    }
+}
+
+#[tauri::command]
+fn get_scripts_path() -> Result<String, String> {
+    use std::env;
+    
+    let scripts_path = if cfg!(debug_assertions) {
+        std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .parent()
+            .unwrap()
+            .join("scripts")
+    } else {
+        let exe_path = env::current_exe().map_err(|e| e.to_string())?;
+        exe_path
+            .parent()
+            .unwrap()
+            .join("../Resources/scripts")
+    };
+    
+    Ok(scripts_path.to_string_lossy().to_string())
+}
+
 fn main() {
     use tauri::menu::{Menu, Submenu, PredefinedMenuItem};
     
@@ -221,6 +285,8 @@ fn main() {
             has_service_account,
             get_service_account_project_id,
             get_vertex_token,
+            run_vertex_setup,
+            get_scripts_path,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

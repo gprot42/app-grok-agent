@@ -39,6 +39,10 @@
       "icons/icon.png",
       "icons/icon.icns"
     ],
+    "resources": [
+      "../scripts/*",
+      "../README.md"
+    ],
     "macOS": {
       "minimumSystemVersion": "10.15",
       "frameworks": []
