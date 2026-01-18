@@ -2,7 +2,7 @@
 set -e
 
 APP_NAME="Cortex Agent"
-VERSION="0.0.1"
+VERSION=$(grep '"version"' package.json | head -1 | sed 's/.*"version": "\([^"]*\)".*/\1/')
 DMG_NAME="Cortex-Agent-${VERSION}"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO="dazdaz/app-cortex-agent"
