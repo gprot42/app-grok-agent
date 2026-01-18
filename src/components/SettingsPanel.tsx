@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { open } from "@tauri-apps/plugin-shell";
 import { Button, Input, Select } from "./index";
 import { AppSettings, FONT_OPTIONS } from "../types";
 
@@ -8,6 +9,17 @@ interface SettingsPanelProps {
   onUpdateSettings: (updates: Partial<AppSettings>) => void;
   onSaveApiKey: (apiKey: string) => void;
   onClose: () => void;
+}
+
+function ExternalLink({ href, children, className = "" }: { href: string; children: React.ReactNode; className?: string }) {
+  return (
+    <button
+      onClick={() => open(href)}
+      className={`text-indigo-600 dark:text-indigo-400 hover:underline ${className}`}
+    >
+      {children}
+    </button>
+  );
 }
 
 function SettingRow({ 
@@ -47,6 +59,8 @@ export function SettingsPanel({
   const [setupProjectId, setSetupProjectId] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupResult, setSetupResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [gcloudAuth, setGcloudAuth] = useState<{ authenticated: boolean; account?: string; error?: string } | null>(null);
+  const [authLoading, setAuthLoading] = useState(false);
 
   useEffect(() => {
     setApiKey(settings.apiKey);
@@ -63,7 +77,44 @@ export function SettingsPanel({
       setSaProjectId(id);
       if (id) setSetupProjectId(id);
     });
+    checkGcloudAuth();
   }, []);
+
+  const checkGcloudAuth = async () => {
+    try {
+      const account = await invoke<string>("check_gcloud_auth");
+      setGcloudAuth({ authenticated: true, account });
+    } catch (e) {
+      setGcloudAuth({ authenticated: false, error: String(e) });
+    }
+  };
+
+  const handleOpenAuth = async () => {
+    if (authLoading) return;
+    setAuthLoading(true);
+    try {
+      await invoke("open_gcloud_auth");
+      let attempts = 0;
+      const maxAttempts = 60;
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        try {
+          const account = await invoke<string>("check_gcloud_auth");
+          setGcloudAuth({ authenticated: true, account });
+          clearInterval(pollInterval);
+          setAuthLoading(false);
+        } catch {
+          if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setAuthLoading(false);
+          }
+        }
+      }, 3000);
+    } catch (e) {
+      setSetupResult({ success: false, message: String(e) });
+      setAuthLoading(false);
+    }
+  };
 
   const handleSave = () => {
     onSaveApiKey(aiStudioKey || apiKey);
@@ -92,13 +143,21 @@ export function SettingsPanel({
         remove,
       });
       setSetupResult({ success: true, message: result });
+      
+      // Small delay to ensure file system has synced
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       const updated = await invoke<boolean>("has_service_account");
       setHasServiceAccount(updated);
       const newId = await invoke<string | null>("get_service_account_project_id");
       setSaProjectId(newId);
+      
       if (!remove && updated) {
         onUpdateSettings({ projectId: setupProjectId });
         setProjectId(setupProjectId);
+      }
+      if (remove) {
+        setSaProjectId(null);
       }
     } catch (e) {
       setSetupResult({ success: false, message: String(e) });
@@ -132,7 +191,7 @@ export function SettingsPanel({
                 description={
                   <>
                     Required for <strong>Gemini models</strong>, <strong>Image generation</strong>, and <strong>Deep Research</strong>.
-                    <p className="mt-1 text-xs">Get your key from <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" className="underline">aistudio.google.com</a></p>
+                    <p className="mt-1 text-xs">Get your key from <ExternalLink href="https://aistudio.google.com/apikey">aistudio.google.com</ExternalLink></p>
                   </>
                 }
               >
@@ -149,7 +208,7 @@ export function SettingsPanel({
                 description={
                   <>
                     Access <strong>100+ models</strong> (Claude, GPT-4, Llama, Gemini) with one key.
-                    <p className="mt-1 text-xs">Get your key from <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" className="underline">openrouter.ai</a></p>
+                    <p className="mt-1 text-xs">Get your key from <ExternalLink href="https://openrouter.ai/keys">openrouter.ai</ExternalLink></p>
                   </>
                 }
               >
@@ -166,7 +225,7 @@ export function SettingsPanel({
                 description={
                   <>
                     Required for <strong>Grok models</strong> with real-time X (Twitter) data access.
-                    <p className="mt-1 text-xs">Get your key from <a href="https://console.x.ai" target="_blank" rel="noopener" className="underline">console.x.ai</a></p>
+                    <p className="mt-1 text-xs">Get your key from <ExternalLink href="https://console.x.ai">console.x.ai</ExternalLink></p>
                   </>
                 }
               >
@@ -183,7 +242,7 @@ export function SettingsPanel({
                 description={
                   <>
                     Coding-optimized access to Claude, Gemini, and DeepSeek models.
-                    <p className="mt-1 text-xs">Get your key from <a href="https://kilocode.ai" target="_blank" rel="noopener" className="underline">kilocode.ai</a></p>
+                    <p className="mt-1 text-xs">Get your key from <ExternalLink href="https://kilocode.ai">kilocode.ai</ExternalLink></p>
                   </>
                 }
               >
@@ -206,6 +265,63 @@ export function SettingsPanel({
               Vertex AI (Google Cloud)
             </h3>
             <div className="bg-gray-50 dark:bg-tokyo-bg rounded-lg p-4">
+              <SettingRow
+                title="Google Cloud Authentication"
+                description={
+                  <>
+                    Required for Vertex AI setup. Authenticates with your Google Cloud account.
+                  </>
+                }
+              >
+                <div className="space-y-2">
+                  {gcloudAuth === null ? (
+                    <div className="text-sm text-gray-500">Checking...</div>
+                  ) : gcloudAuth.authenticated ? (
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full bg-green-500" />
+                      <span className="text-sm text-green-700 dark:text-green-300">
+                        Authenticated: <strong>{gcloudAuth.account}</strong>
+                      </span>
+                      <button
+                        onClick={checkGcloudAuth}
+                        className="ml-2 text-xs text-gray-400 hover:text-gray-600"
+                        title="Refresh"
+                      >
+                        ↻
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                        <span className="text-sm text-red-700 dark:text-red-300">
+                          Not authenticated
+                        </span>
+                      </div>
+                      <Button
+                        onClick={handleOpenAuth}
+                        disabled={authLoading}
+                      >
+                        {authLoading ? "Waiting for authentication..." : "Authenticate with Google Cloud"}
+                      </Button>
+                      <p className="text-xs text-gray-500">
+                        {authLoading 
+                          ? "Complete authentication in Terminal, then this will update automatically."
+                          : "Opens Terminal to complete browser-based authentication."}
+                        {!authLoading && (
+                          <button
+                            onClick={checkGcloudAuth}
+                            className="ml-2 text-indigo-500 hover:underline"
+                          >
+                            Check again
+                          </button>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </SettingRow>
+
               <SettingRow
                 title="Service Account"
                 description={
@@ -245,6 +361,9 @@ export function SettingsPanel({
                         value={setupProjectId}
                         onChange={(e) => setSetupProjectId(e.target.value)}
                         placeholder="my-gcp-project"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
                       />
                       <Button
                         variant="primary"
@@ -276,7 +395,7 @@ export function SettingsPanel({
                 }
               >
                 <p className="text-sm text-gray-600 dark:text-tokyo-muted">
-                  Run <code className="bg-gray-200 dark:bg-tokyo-border px-1.5 py-0.5 rounded text-xs">scripts/02-enable-vertex-models.sh</code> and follow the instructions, or enable them through the <a href="https://console.cloud.google.com/vertex-ai/model-garden" target="_blank" rel="noopener" className="underline">Model Garden UI</a> directly.
+                  Run <code className="bg-gray-200 dark:bg-tokyo-border px-1.5 py-0.5 rounded text-xs">scripts/02-enable-vertex-models.sh</code> and follow the instructions, or enable them through the <ExternalLink href="https://console.cloud.google.com/vertex-ai/model-garden">Model Garden UI</ExternalLink> directly.
                 </p>
               </SettingRow>
             </div>

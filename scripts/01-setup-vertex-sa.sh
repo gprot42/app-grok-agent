@@ -21,6 +21,7 @@ NC='\033[0m' # No Color
 CORTEX_DIR="$HOME/.cortex-agent"
 KEY_FILE="$CORTEX_DIR/vertex-key.json"
 REMOVE_MODE=false
+YES_MODE=false
 GCLOUD_ACCOUNT=""
 
 print_header() {
@@ -44,11 +45,12 @@ print_error() {
 show_usage() {
     print_header
     echo "Usage:"
-    echo "  $0 [--account ACCOUNT] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
-    echo "  $0 --remove [--account ACCOUNT] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
+    echo "  $0 [--account ACCOUNT] [--yes] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
+    echo "  $0 --remove [--account ACCOUNT] [--yes] PROJECT_ID [SERVICE_ACCOUNT_NAME]"
     echo ""
     echo "Options:"
     echo "  --account ACCOUNT    Google Cloud account to use (e.g., user@domain.com)"
+    echo "  --yes, -y            Skip confirmation prompts (for non-interactive use)"
     echo "  --remove             Remove service account, keys, and local key file"
     echo ""
     echo "Arguments:"
@@ -58,6 +60,7 @@ show_usage() {
     echo "Examples:"
     echo "  $0 --account user@example.com my-project     # Create with specific account"
     echo "  $0 my-gcp-project                            # Create with default account"
+    echo "  $0 --yes my-gcp-project                      # Create without prompts"
     echo "  $0 --remove my-gcp-project                   # Remove service account"
     exit 1
 }
@@ -79,9 +82,28 @@ remove_service_account() {
         print_error "gcloud CLI is not installed"
         exit 1
     fi
+    print_step "gcloud CLI found"
+
+    # Check if authenticated
+    echo ""
+    echo "Checking authentication..."
+    if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1 | grep -q "."; then
+        print_error "Not authenticated with gcloud"
+        echo ""
+        echo "Please run: gcloud auth login"
+        exit 1
+    fi
+    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
+    print_step "Authenticated as: $ACTIVE_ACCOUNT"
 
     # Set the project
-    gcloud config set project "$project_id" 2>/dev/null
+    echo ""
+    echo "Setting project..."
+    if ! gcloud config set project "$project_id" 2>&1; then
+        print_error "Failed to set project: $project_id"
+        exit 1
+    fi
+    print_step "Project set to $project_id"
 
     # Check if service account exists
     if ! gcloud iam service-accounts describe "$sa_email" &>/dev/null; then
@@ -92,7 +114,12 @@ remove_service_account() {
         echo "  - All associated keys"
         echo "  - IAM policy bindings"
         echo ""
-        read -p "Are you sure you want to continue? (y/N): " confirm
+        if [ "$YES_MODE" = true ]; then
+            echo "Auto-confirming (--yes mode)"
+            confirm="y"
+        else
+            read -p "Are you sure you want to continue? (y/N): " confirm
+        fi
         if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
             echo "Aborted."
             exit 0
@@ -123,7 +150,12 @@ remove_service_account() {
     # Remove local key file
     if [ -f "$KEY_FILE" ]; then
         echo ""
-        read -p "Delete local key file ($KEY_FILE)? (y/N): " confirm_key
+        if [ "$YES_MODE" = true ]; then
+            echo "Auto-confirming key file deletion (--yes mode)"
+            confirm_key="y"
+        else
+            read -p "Delete local key file ($KEY_FILE)? (y/N): " confirm_key
+        fi
         if [[ "$confirm_key" =~ ^[Yy]$ ]]; then
             rm -f "$KEY_FILE"
             rm -f "${KEY_FILE}.bak" 2>/dev/null || true
@@ -159,10 +191,48 @@ create_service_account() {
 
     print_step "gcloud CLI found"
 
+    # Check if authenticated
+    echo ""
+    echo "Checking authentication..."
+    if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1 | grep -q "."; then
+        print_error "Not authenticated with gcloud"
+        echo ""
+        echo "Please run one of the following commands first:"
+        echo "  gcloud auth login                    # For user account"
+        echo "  gcloud auth application-default login  # For application credentials"
+        echo ""
+        exit 1
+    fi
+    ACTIVE_ACCOUNT=$(gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | head -1)
+    print_step "Authenticated as: $ACTIVE_ACCOUNT"
+
     # Set the project
     echo ""
     echo "Setting project..."
-    gcloud config set project "$project_id" 2>/dev/null
+    if ! gcloud config set project "$project_id" 2>&1; then
+        print_error "Failed to set project: $project_id"
+        echo ""
+        echo "Possible causes:"
+        echo "  - Project does not exist"
+        echo "  - You don't have access to the project"
+        echo "  - Project ID is misspelled"
+        echo ""
+        echo "To verify, run: gcloud projects describe $project_id"
+        exit 1
+    fi
+    
+    # Verify project access
+    echo "Verifying project access..."
+    if ! gcloud projects describe "$project_id" --format="value(projectId)" 2>/dev/null | grep -q "."; then
+        print_error "Cannot access project: $project_id"
+        echo ""
+        echo "Make sure:"
+        echo "  - The project ID is correct (not project name)"
+        echo "  - You have at least 'Viewer' access to the project"
+        echo "  - The project exists and is not deleted"
+        echo ""
+        exit 1
+    fi
     print_step "Project set to $project_id"
 
     # Enable required APIs
@@ -177,7 +247,12 @@ create_service_account() {
     echo "Checking for existing service account..."
     if gcloud iam service-accounts describe "$sa_email" &>/dev/null; then
         print_warning "Service account already exists: $sa_email"
-        read -p "Delete existing keys and create new one? (y/N): " confirm
+        if [ "$YES_MODE" = true ]; then
+            echo "Auto-confirming key recreation (--yes mode)"
+            confirm="y"
+        else
+            read -p "Delete existing keys and create new one? (y/N): " confirm
+        fi
         if [[ "$confirm" =~ ^[Yy]$ ]]; then
             # Delete existing keys
             for key in $(gcloud iam service-accounts keys list --iam-account="$sa_email" --format="value(name)" --filter="keyType=USER_MANAGED" 2>/dev/null); do
@@ -286,6 +361,10 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --remove)
             REMOVE_MODE=true
+            shift
+            ;;
+        --yes|-y)
+            YES_MODE=true
             shift
             ;;
         --account)

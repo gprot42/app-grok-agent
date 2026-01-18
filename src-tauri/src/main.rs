@@ -222,6 +222,9 @@ async fn run_vertex_setup(project_id: String, remove: bool) -> Result<String, St
     let mut cmd = Command::new("bash");
     cmd.arg(&script_path);
     
+    // Always use --yes for non-interactive mode from the app
+    cmd.arg("--yes");
+    
     if remove {
         cmd.arg("--remove");
     }
@@ -260,6 +263,100 @@ fn get_scripts_path() -> Result<String, String> {
     Ok(scripts_path.to_string_lossy().to_string())
 }
 
+#[tauri::command]
+fn check_gcloud_auth() -> Result<String, String> {
+    use std::process::Command;
+    
+    // Check if gcloud is installed
+    let gcloud_check = Command::new("which")
+        .arg("gcloud")
+        .output();
+    
+    if gcloud_check.is_err() || !gcloud_check.unwrap().status.success() {
+        return Err("gcloud CLI is not installed. Please install it from https://cloud.google.com/sdk/docs/install".to_string());
+    }
+    
+    // Try to get an access token - this will fail if auth is expired
+    let output = Command::new("gcloud")
+        .args(["auth", "print-access-token"])
+        .output()
+        .map_err(|e| format!("Failed to check auth: {}", e))?;
+    
+    if output.status.success() {
+        // Get the authenticated account
+        let account_output = Command::new("gcloud")
+            .args(["auth", "list", "--filter=status:ACTIVE", "--format=value(account)"])
+            .output()
+            .map_err(|e| format!("Failed to get account: {}", e))?;
+        
+        let account = String::from_utf8_lossy(&account_output.stdout)
+            .trim()
+            .lines()
+            .next()
+            .unwrap_or("Unknown")
+            .to_string();
+        
+        Ok(account)
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(format!("Authentication required: {}", stderr.trim()))
+    }
+}
+
+#[tauri::command]
+fn open_gcloud_auth() -> Result<(), String> {
+    use std::process::Command;
+    
+    // Open Terminal.app with gcloud auth login command
+    #[cfg(target_os = "macos")]
+    {
+        Command::new("osascript")
+            .args([
+                "-e",
+                r#"tell application "Terminal"
+                    activate
+                    if (count of windows) = 0 then
+                        do script "echo 'Authenticating with Google Cloud...' && gcloud auth login && echo '' && echo 'Authentication complete! You can close this window and return to Cortex Agent.'"
+                    else
+                        do script "echo 'Authenticating with Google Cloud...' && gcloud auth login && echo '' && echo 'Authentication complete! You can close this window and return to Cortex Agent.'" in front window
+                    end if
+                end tell"#,
+            ])
+            .output()
+            .map_err(|e| format!("Failed to open Terminal: {}", e))?;
+    }
+    
+    #[cfg(target_os = "windows")]
+    {
+        Command::new("cmd")
+            .args(["/c", "start", "cmd", "/k", "gcloud auth login"])
+            .spawn()
+            .map_err(|e| format!("Failed to open terminal: {}", e))?;
+    }
+    
+    #[cfg(target_os = "linux")]
+    {
+        // Try common terminal emulators
+        let terminals = ["gnome-terminal", "konsole", "xterm"];
+        let mut opened = false;
+        for term in terminals {
+            if Command::new(term)
+                .args(["--", "bash", "-c", "gcloud auth login; read -p 'Press Enter to close...'"])
+                .spawn()
+                .is_ok()
+            {
+                opened = true;
+                break;
+            }
+        }
+        if !opened {
+            return Err("Could not open terminal. Please run 'gcloud auth login' manually.".to_string());
+        }
+    }
+    
+    Ok(())
+}
+
 fn main() {
     use tauri::menu::{Menu, Submenu, PredefinedMenuItem};
     
@@ -289,6 +386,7 @@ fn main() {
         .plugin(tauri_plugin_http::init())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_shell::init())
         .invoke_handler(tauri::generate_handler![
             load_settings,
             save_settings,
@@ -308,6 +406,8 @@ fn main() {
             get_vertex_token,
             run_vertex_setup,
             get_scripts_path,
+            check_gcloud_auth,
+            open_gcloud_auth,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
