@@ -35,11 +35,11 @@ export function ResearchSessionTabs({
     };
 
     return (
-        <div className="flex items-center gap-1 px-4 py-2 theme-surface border-b theme-border overflow-x-auto">
+        <div className="flex items-center gap-1 px-4 py-2 theme-surface border-b theme-border overflow-x-auto flex-shrink-0">
             {sessions.map((session) => (
                 <div
                     key={session.id}
-                    className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg text-base cursor-pointer transition-colors ${activeSessionId === session.id
+                    className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg text-base cursor-pointer transition-colors flex-shrink-0 ${activeSessionId === session.id
                             ? "theme-accent-bg text-white"
                             : "theme-hover theme-text"
                         }`}
@@ -93,7 +93,7 @@ export function ResearchSessionTabs({
             ))}
             <button
                 onClick={onCreateSession}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm theme-text-muted theme-hover transition-colors"
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-base theme-text-muted theme-hover transition-colors flex-shrink-0"
             >
                 <svg
                     className="w-4 h-4"

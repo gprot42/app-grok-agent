@@ -69,6 +69,7 @@ export function ChatPanel({
   onStopGeneration,
 }: ChatPanelProps) {
   const [prompt, setPrompt] = useState("");
+  const [lastPrompt, setLastPrompt] = useState("");
   const [attachedFile, setAttachedFile] = useState<{
     path: string;
     data: string;
@@ -86,11 +87,13 @@ export function ChatPanel({
   const handleSend = async () => {
     if (!prompt.trim() && !attachedFile) return;
 
+    const currentPrompt = prompt;
     const fileData = attachedFile
       ? { path: attachedFile.path, data: attachedFile.data, mimeType: attachedFile.mimeType }
       : undefined;
 
     try {
+      setLastPrompt(currentPrompt);
       await onSendMessage(
         prompt,
         {
@@ -119,6 +122,12 @@ export function ChatPanel({
     if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
+    }
+  };
+
+  const handleResend = () => {
+    if (lastPrompt) {
+      setPrompt(lastPrompt);
     }
   };
 
@@ -417,6 +426,9 @@ export function ChatPanel({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button onClick={handleResend} size="sm" disabled={!lastPrompt || isLoading}>
+              Resend
+            </Button>
             <Button onClick={handleAttachFile} size="sm">
               Attach
             </Button>

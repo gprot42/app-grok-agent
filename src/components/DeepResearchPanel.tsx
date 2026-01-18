@@ -25,6 +25,7 @@ export function DeepResearchPanel({
   research,
 }: DeepResearchPanelProps) {
   const [query, setQuery] = useState("");
+  const [lastQuery, setLastQuery] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<string | null>(null);
   const [savedIdx, setSavedIdx] = useState<string | null>(null);
   const [saveFormat, setSaveFormat] = useState<"md" | "txt">("md");
@@ -73,9 +74,16 @@ export function DeepResearchPanel({
       return;
     }
 
+    setLastQuery(query);
     await research.startResearch(query, apiKey, timeoutMinutes);
     setQuery("");
     resultsEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleResend = () => {
+    if (lastQuery) {
+      setQuery(lastQuery);
+    }
   };
 
   const handleCopy = async (content: string, taskId: string) => {
@@ -174,8 +182,8 @@ export function DeepResearchPanel({
                 ) : (
                   <span className="text-lg">🔬</span>
                 )}
-                <span className="text-sm font-medium theme-text flex-1 truncate">{task.query}</span>
-                <span className="text-xs theme-text-muted">
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 flex-1 truncate">{task.query}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
                   {new Date(task.completedAt || task.startedAt).toLocaleTimeString()}
                 </span>
               </div>
@@ -183,7 +191,7 @@ export function DeepResearchPanel({
               {/* Content */}
               <div className="p-4">
                 {(task.status === "failed" || task.status === "cancelled") && (
-                  <div className="text-sm text-red-600 dark:text-red-400">
+                  <div className="text-base text-red-600 dark:text-red-400">
                     {task.error || "Research failed"}
                   </div>
                 )}
@@ -297,6 +305,9 @@ export function DeepResearchPanel({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button onClick={handleResend} size="sm" disabled={!lastQuery || research.runningTasks.length > 0}>
+              Resend
+            </Button>
             {research.completedTasks.length > 0 && (
               <Button onClick={research.clearCompleted} size="sm">
                 Clear Completed

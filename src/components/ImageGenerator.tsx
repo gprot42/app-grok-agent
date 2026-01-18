@@ -25,6 +25,7 @@ export function ImageGenerator({
   onDeleteImage,
 }: ImageGeneratorProps) {
   const [prompt, setPrompt] = useState("");
+  const [lastPrompt, setLastPrompt] = useState("");
   const [sourceImage, setSourceImage] = useState<{
     data: string;
     name: string;
@@ -68,6 +69,7 @@ export function ImageGenerator({
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+    setLastPrompt(prompt);
     await onGenerateImage({
       prompt,
       apiKey,
@@ -75,6 +77,12 @@ export function ImageGenerator({
       editImageMimeType: sourceImage?.mimeType,
     });
     setPrompt("");
+  };
+
+  const handleResend = () => {
+    if (lastPrompt) {
+      setPrompt(lastPrompt);
+    }
   };
 
   const handleSaveImage = async (imageBase64: string, index: number) => {
@@ -354,6 +362,9 @@ export function ImageGenerator({
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Button onClick={handleResend} size="sm" disabled={!lastPrompt || isLoading}>
+              Resend
+            </Button>
             <Button onClick={handleLoadImage} size="sm">
               Load Image
             </Button>
