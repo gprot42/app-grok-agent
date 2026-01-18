@@ -307,6 +307,14 @@ function App() {
 }
 
 function AboutPanel({ onClose }: { onClose: () => void }) {
+  const [version, setVersion] = useState("...");
+  
+  useEffect(() => {
+    import("@tauri-apps/api/app").then(({ getVersion }) => {
+      getVersion().then(setVersion);
+    });
+  }, []);
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
       <div className="bg-white dark:bg-tokyo-surface rounded-xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden max-h-[80vh] flex flex-col">
@@ -330,7 +338,7 @@ function AboutPanel({ onClose }: { onClose: () => void }) {
             <h3 className="text-xl font-bold bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
               Cortex Agent
             </h3>
-            <p className="text-sm text-gray-500 dark:text-tokyo-muted mt-1">Version 0.0.1</p>
+            <p className="text-sm text-gray-500 dark:text-tokyo-muted mt-1">Version {version}</p>
           </div>
 
           <div className="space-y-4">
