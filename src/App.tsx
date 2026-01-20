@@ -339,6 +339,7 @@ function AboutPanel({ onClose }: { onClose: () => void }) {
               Cortex Agent
             </h3>
             <p className="text-sm text-gray-500 dark:text-tokyo-muted mt-1">Version {version}</p>
+            <p className="text-xs text-gray-400 dark:text-tokyo-muted">Built {__BUILD_DATE__}</p>
           </div>
 
           <div className="space-y-4">
