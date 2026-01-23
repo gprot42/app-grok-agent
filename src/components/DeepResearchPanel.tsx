@@ -28,13 +28,9 @@ export function DeepResearchPanel({
   const [lastQuery, setLastQuery] = useState("");
   const [copiedIdx, setCopiedIdx] = useState<string | null>(null);
   const [savedIdx, setSavedIdx] = useState<string | null>(null);
-  const [saveFormat, setSaveFormat] = useState<"md" | "txt">("md");
-  const [thinkingLevel, setThinkingLevel] = useState("medium");
-  const [timeoutMinutes, setTimeoutMinutes] = useState(60);
-  const [textareaHeight, setTextareaHeight] = useState(80);
+  const [saveFormat] = useState<"md" | "txt">("md");
+  const [timeoutMinutes] = useState(60);
   const resultsEndRef = useRef<HTMLDivElement>(null);
-  const dragStartY = useRef<number>(0);
-  const dragStartHeight = useRef<number>(0);
 
   // Real-time elapsed timer component
   function ElapsedTimer({ startedAt }: { startedAt: number }) {
@@ -56,18 +52,7 @@ export function DeepResearchPanel({
     );
   }
 
-  const thinkingOptions = [
-    { value: "low", label: "Low" },
-    { value: "medium", label: "Medium" },
-    { value: "high", label: "High" },
-  ];
 
-  const timeoutOptions = [
-    { value: 15, label: "15 min" },
-    { value: 30, label: "30 min" },
-    { value: 45, label: "45 min" },
-    { value: 60, label: "60 min" },
-  ];
 
   const handleResearch = async () => {
     if (!query.trim() || !apiKey) {
@@ -117,8 +102,8 @@ export function DeepResearchPanel({
   };
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin">
+    <div className="flex flex-col flex-1 min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 scrollbar-thin min-h-0">
         {/* Running tasks indicator */}
         {research.runningTasks.length > 0 && (
           <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
@@ -270,112 +255,35 @@ export function DeepResearchPanel({
         <div ref={resultsEndRef} />
       </div>
 
-      <div className="border-t theme-border p-4 space-y-3 theme-surface">
-        {/* Resize handle at top */}
-        <div
-          className="flex justify-center cursor-ns-resize py-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-t transition-colors"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            dragStartY.current = e.clientY;
-            dragStartHeight.current = textareaHeight;
-            const handleMove = (moveEvent: MouseEvent) => {
-              const deltaY = dragStartY.current - moveEvent.clientY;
-              const newHeight = Math.max(60, Math.min(300, dragStartHeight.current + deltaY));
-              setTextareaHeight(newHeight);
-            };
-            const handleUp = () => {
-              document.removeEventListener('mousemove', handleMove);
-              document.removeEventListener('mouseup', handleUp);
-            };
-            document.addEventListener('mousemove', handleMove);
-            document.addEventListener('mouseup', handleUp);
-          }}
-          title="Drag to resize"
-        >
-          <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
-        </div>
-
-        <Textarea
-          value={query}
-          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
-          placeholder="Enter your research question... (e.g., 'What are the latest developments in quantum computing?')"
-          className="w-full resize-none"
-          style={{ height: `${textareaHeight}px`, minHeight: '60px', maxHeight: '300px' }}
-        />
-
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Button onClick={handleResend} size="sm" disabled={!lastQuery || research.runningTasks.length > 0}>
-              Resend
-            </Button>
-            {research.completedTasks.length > 0 && (
-              <Button onClick={research.clearCompleted} size="sm">
-                Clear Completed
-              </Button>
-            )}
-            {activeProject && (
-              <span className="text-xs theme-accent">
-                Project: {activeProject}
-              </span>
-            )}
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Save format selector */}
-            <select
-              value={saveFormat}
-              onChange={(e) => setSaveFormat(e.target.value as "md" | "txt")}
-              className="text-sm px-2 py-1 rounded theme-surface theme-border border"
-              title="Save format"
-            >
-              <option value="md">Markdown (.md)</option>
-              <option value="txt">Text (.txt)</option>
-            </select>
-
-            {/* Thinking level selector */}
-            <select
-              value={thinkingLevel}
-              onChange={(e) => setThinkingLevel(e.target.value)}
-              className="text-sm px-2 py-1 rounded theme-surface theme-border border"
-              title="Thinking Level"
-            >
-              {thinkingOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-
-            {/* Timeout selector */}
-            <select
-              value={timeoutMinutes}
-              onChange={(e) => setTimeoutMinutes(Number(e.target.value))}
-              className="text-sm px-2 py-1 rounded theme-surface theme-border border"
-              title="Research Timeout"
-            >
-              {timeoutOptions.map(opt => (
-                <option key={opt.value} value={opt.value}>{opt.label}</option>
-              ))}
-            </select>
-
-            <div className="text-base theme-text-muted">
-              {query.length} chars
-            </div>
-            {!apiKey && (
-              <span className="text-base text-amber-600 dark:text-amber-400">
-                ⚠️ API key required
-              </span>
-            )}
-            {apiKey && !query.trim() && (
-              <span className="text-base text-gray-500 dark:text-gray-400">
-                Enter a question
-              </span>
-            )}
-            <Button
-              onClick={handleResearch}
-              disabled={!query.trim() || !apiKey}
-            >
-              Research
-            </Button>
-          </div>
+      <div className="border-t theme-border p-2 pb-4 theme-surface">
+        <div className="flex gap-2 items-center">
+          <Textarea
+            value={query}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setQuery(e.target.value)}
+            placeholder="Enter your research question..."
+            className="flex-1 resize-none text-sm h-10 min-h-[40px] max-h-[40px]"
+          />
+          <Button
+            onClick={handleResearch}
+            disabled={!query.trim() || !apiKey}
+            size="sm"
+            className="h-10 px-3"
+          >
+            Go
+          </Button>
+          <Button onClick={handleResend} size="sm" variant="outline" className="h-10 px-2" disabled={!lastQuery || research.runningTasks.length > 0} title="Resend last query">
+            ↻
+          </Button>
+          <Button 
+            onClick={research.clearCompleted} 
+            size="sm" 
+            variant="outline" 
+            className="h-10 px-3"
+            disabled={research.completedTasks.length === 0}
+            title="Clear all results"
+          >
+            Clear
+          </Button>
         </div>
       </div>
     </div>
