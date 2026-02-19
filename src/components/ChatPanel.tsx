@@ -1,4 +1,4 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
 import { readFile } from "@tauri-apps/plugin-fs";
 import { writeText } from "@tauri-apps/plugin-clipboard-manager";
@@ -86,6 +86,11 @@ export function ChatPanel({
   const [showJsonModal, setShowJsonModal] = useState(false);
   const [textareaHeight, setTextareaHeight] = useState(100);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isLoading]);
+
   const dragStartY = useRef<number>(0);
   const dragStartHeight = useRef<number>(0);
 
