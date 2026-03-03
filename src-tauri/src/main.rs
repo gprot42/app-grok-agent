@@ -572,6 +572,7 @@ fn main() {
         ])
         .on_menu_event(|app, event| {
             if event.id().as_ref() == "toggle_devtools" {
+                #[cfg(debug_assertions)]
                 if let Some(win) = app.get_webview_window("main") {
                     if win.is_devtools_open() {
                         win.close_devtools();
