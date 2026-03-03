@@ -1,4 +1,4 @@
-# Cortex Agent v0.0.1
+# Cortex Agent v0.0.8
 
 A modern desktop AI assistant for interacting with Large Language Models on
 **Google Cloud Vertex AI** and **AI Studio**, built with Tauri, React, and Rust.
@@ -12,8 +12,8 @@ A modern desktop AI assistant for interacting with Large Language Models on
 ## Features
 
 ### AI Models
-- **Claude 4.5**: Haiku, Sonnet, Opus with memory support
-- **Gemini 2.5/3**: Pro and Flash variants with grounding
+- **Claude 4.6**: Sonnet, Opus via Vertex AI
+- **Gemini 2.5/3.1**: Pro and Flash variants with grounding
 - **Gemini Deep Research**: Multi-step web research agent
 - **Nano Banana Pro**: AI image generation and editing
 
@@ -24,6 +24,27 @@ A modern desktop AI assistant for interacting with Large Language Models on
 - **Deep Thinking**: Extended reasoning for complex problems
 - **Grounding**: Web search for up-to-date information
 - **File Attachments**: Text, images, and PDFs
+
+### Vibe Coding Agent
+- **Agentic AI Coding**: Reads, writes, edits files and runs commands autonomously
+- **Multi-Model Support**: Claude Opus 4.6, Sonnet 4.6, Gemini 3.1 Pro, 2.5 Flash/Pro
+- **Gemini 3.1 Pro Agent Tools**: Custom tools variant optimized for agentic workflows
+- **Git Integration**: Push code to GitHub repos, init repos, commit and push
+- **Iterative Development**: Ask for changes and fixes in follow-up prompts
+- **Working Directory Picker**: Select output folder, create subdirectories
+- **Tool Call Visualization**: Expandable cards showing each tool call and result
+
+### Vibe Coding Agent Safety Guards
+
+| Command | Allowed? | Reason |
+|---|---|---|
+| `rm`, `rm -rf` | Blocked | Deletes local files |
+| `git rm` | Blocked | Deletes local files |
+| `git rm --cached` | Allowed | Removes from repo only, keeps local |
+| `git clean` | Blocked | Deletes local files |
+| `gh repo delete` | Allowed | Remote only |
+| `git push --force` | Allowed | Remote only |
+| `write_file` (existing file) | Allowed | Auto-creates `.bak` backup first |
 
 ### Interface
 - **Multiple Sessions**: Tabbed prompt sessions
@@ -75,6 +96,7 @@ API keys are encrypted using AES-256-GCM and stored at `~/.cortex-agent/`. The e
 | Ctrl/Cmd + Enter | Send message |
 | Ctrl/Cmd + T | New prompt session |
 | Ctrl/Cmd + W | Close current session |
+| Ctrl/Cmd + Shift + I | Toggle Developer Tools |
 
 ## Standalone App
 
@@ -86,4 +108,4 @@ This is not an official Google product. All pricing shown is for estimation only
 
 ---
 
-**Version 0.0.1** - Built with Tauri, React, and Rust
+**Version 0.0.8** - Built with Tauri, React, and Rust

@@ -1176,6 +1176,19 @@ PATHS:
 - Use simple relative paths like "src/main.py", "package.json" — do NOT repeat the working directory name.
 - Example: if working dir is /Users/user/src/myapp, use "src/index.ts" NOT "myapp/src/index.ts".
 
+SAFETY:
+- NEVER delete, remove, or overwrite the user's existing LOCAL source files.
+- If the user asks to delete LOCAL files, REFUSE and explain that local file deletion is not allowed for safety.
+- The write_file tool auto-backs up any existing file before overwriting.
+- Commands like rm, git clean are blocked and will fail.
+- git rm is blocked UNLESS used with --cached (which keeps local files).
+- Only create NEW files or edit existing files when explicitly asked to modify code.
+- Remote-only operations (gh repo delete, git push --force, git rm --cached) are allowed.
+- When asked to "remove files from a repo but keep local files":
+  1. Use "git rm --cached -r ." to unstage all files (keeps local copies)
+  2. Then "git commit -m 'Remove all files'" and "git push" to update the remote
+  3. Or use "gh repo delete <owner/name> --yes" then "gh repo create <owner/name> --public" to reset the remote
+
 GIT & GITHUB:
 - You have full access to git and the GitHub CLI (gh) via run_command.
 - When the user asks to PUSH EXISTING CODE to a repo:

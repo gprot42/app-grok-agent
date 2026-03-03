@@ -167,14 +167,40 @@ pub async fn exec_edit_file(
 }
 
 pub async fn exec_run_command(base_dir: &str, command: &str) -> Result<CommandResult, String> {
-    // Safety: block destructive commands
     let cmd_lower = command.to_lowercase();
-    let blocked = ["rm -rf /", "rm -rf ~", "rm -rf *", "rm -rf .", "mkfs", "format ", "> /dev/"];
-    for pattern in &blocked {
-        if cmd_lower.contains(pattern) {
-            return Err(format!("Blocked dangerous command: {}", command));
+
+    // Safety: block commands that delete LOCAL files
+    // Allow: git rm --cached (removes from git only, keeps local)
+    // Allow: gh repo delete (remote only)
+    // Allow: git push --force (remote only)
+    let blocked_prefixes = [
+        "rm ", "rm\t", "rmdir ", "shred ",
+    ];
+    let blocked_contains = [
+        "rm -rf", "rm -r ", "rm -f ", "rm *",
+        "find . -delete", "find . -exec rm",
+        "git clean -fd", "git clean -fx", "git clean -xfd",
+        "mkfs", "format c:", "> /dev/",
+        "truncate ", ":> ", "unlink ",
+    ];
+    // git rm is blocked UNLESS it has --cached flag (which preserves local files)
+    let has_git_rm = cmd_lower.contains("git rm");
+    let has_cached = cmd_lower.contains("--cached");
+
+    for prefix in &blocked_prefixes {
+        if cmd_lower.starts_with(prefix) {
+            return Err(format!("Blocked: file deletion commands are not allowed. Command: {}", command));
         }
     }
+    for pattern in &blocked_contains {
+        if cmd_lower.contains(pattern) {
+            return Err(format!("Blocked: file deletion commands are not allowed. Command: {}", command));
+        }
+    }
+    if has_git_rm && !has_cached {
+        return Err(format!("Blocked: 'git rm' deletes local files. Use 'git rm --cached' to remove from repo only. Command: {}", command));
+    }
+
     let output = Command::new("bash")
         .arg("-c")
         .arg(command)
