@@ -6,6 +6,9 @@ mod codegen;
 mod storage;
 
 use serde::{Deserialize, Serialize};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -182,7 +185,16 @@ async fn coding_agent_chat(
     project_id: String,
     working_dir: String,
 ) -> Result<serde_json::Value, String> {
-    api::coding_agent_chat(messages, model_id, publisher, endpoint, api_key, project_id, working_dir, app_handle).await
+    let cancel_flag = app_handle.state::<Arc<AtomicBool>>().inner().clone();
+    cancel_flag.store(false, Ordering::SeqCst);
+    api::coding_agent_chat(messages, model_id, publisher, endpoint, api_key, project_id, working_dir, app_handle, cancel_flag).await
+}
+
+#[tauri::command]
+fn coding_agent_stop(app_handle: tauri::AppHandle) {
+    let cancel_flag = app_handle.state::<Arc<AtomicBool>>();
+    cancel_flag.store(true, Ordering::SeqCst);
+    eprintln!("[CodingAgent] Stop requested by user");
 }
 
 #[tauri::command]
@@ -457,6 +469,7 @@ fn main() {
     use tauri::Manager;
     
     tauri::Builder::default()
+        .manage(Arc::new(AtomicBool::new(false)))
         .enable_macos_default_menu(false)
         .setup(|app| {
             if let Some(win) = app.get_webview_window("main") {
@@ -555,6 +568,7 @@ fn main() {
             layout_parse,
             speech_to_text,
             coding_agent_chat,
+            coding_agent_stop,
             save_image,
             save_output,
             create_project,

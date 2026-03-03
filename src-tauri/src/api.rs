@@ -1213,6 +1213,7 @@ pub async fn coding_agent_chat(
     project_id: String,
     working_dir: String,
     app_handle: AppHandle,
+    cancel_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<Value, String> {
     let client = Client::new();
     let tools = codegen::agent_tools_schema();
@@ -1260,6 +1261,12 @@ pub async fn coding_agent_chat(
     };
 
     for iteration in 0..max_iterations {
+        if cancel_flag.load(std::sync::atomic::Ordering::SeqCst) {
+            eprintln!("[CodingAgent] Cancelled by user at iteration {}", iteration);
+            let _ = app_handle.emit("coding-agent-complete", json!({"iteration": iteration, "stop_reason": "user_cancelled"}));
+            return Ok(json!({"text": "Stopped by user", "iterations": iteration, "stop_reason": "user_cancelled"}));
+        }
+
         let agent_model_id = if publisher == "anthropic" {
             model_id.replace("streamRawPredict", "rawPredict")
         } else {

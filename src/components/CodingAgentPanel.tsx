@@ -20,7 +20,7 @@ interface ToolCallEntry {
 
 interface AgentMessage {
   id: string;
-  type: "user" | "assistant-text" | "thinking" | "tool-call" | "tool-result" | "error" | "complete";
+  type: "user" | "assistant-text" | "thinking" | "tool-call" | "tool-result" | "error" | "complete" | "info";
   content: string;
   toolData?: ToolCallEntry;
   iteration?: number;
@@ -193,6 +193,15 @@ export function CodingAgentPanel({
     }
   }, [prompt, running, conversationHistory, model, selectedEndpoint, apiKey, projectId, workingDir, addMessage, setupListeners, cleanupListeners]);
 
+  const handleStop = useCallback(async () => {
+    try {
+      await invoke("coding_agent_stop");
+      addMessage({ type: "info", content: "Stop requested..." });
+    } catch (e) {
+      console.error("Failed to stop agent:", e);
+    }
+  }, [addMessage]);
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -364,6 +373,14 @@ export function CodingAgentPanel({
           </div>
         );
 
+      case "info":
+        return (
+          <div key={msg.id} className="mb-3 flex items-center gap-2 px-4 py-2 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-600 dark:text-amber-400 text-sm">
+            <Square className="h-4 w-4" />
+            {msg.content}
+          </div>
+        );
+
       default:
         return null;
     }
@@ -484,9 +501,13 @@ export function CodingAgentPanel({
             }}
           />
           <button
-            onClick={handleSubmit}
-            disabled={!prompt.trim() || running}
-            className="flex items-center justify-center h-[44px] w-[44px] rounded-xl bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed text-white transition-colors shadow-sm"
+            onClick={running ? handleStop : handleSubmit}
+            disabled={!running && !prompt.trim()}
+            className={`flex items-center justify-center h-[44px] w-[44px] rounded-xl text-white transition-colors shadow-sm ${
+              running
+                ? "bg-red-500 hover:bg-red-600"
+                : "bg-blue-500 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            }`}
           >
             {running ? <Square className="h-4 w-4 fill-current" /> : <Send className="h-4 w-4" />}
           </button>
