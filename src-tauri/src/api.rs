@@ -1159,7 +1159,7 @@ Available tools:
 - write_file: Create or overwrite files (auto-creates parent directories)
 - read_file: Read file contents
 - edit_file: Targeted find-and-replace edits on existing files
-- run_command: Execute shell commands (install deps, build, test, etc.)
+- run_command: Execute shell commands (install deps, build, test, git, gh CLI, etc.)
 - list_directory: View the file tree of a directory
 
 CRITICAL RULES:
@@ -1168,7 +1168,28 @@ CRITICAL RULES:
 3. After creating files, use run_command to verify they work (e.g., run the script, build the project).
 4. If a command fails, read the error and fix it by calling edit_file or write_file again.
 5. Continue calling tools until the task is fully complete.
-6. For new projects, start by creating the main files with write_file."#;
+6. For new projects, start by creating the main files with write_file.
+
+PATHS:
+- All file paths are relative to the working directory (provided separately).
+- Use "." to refer to the working directory itself (e.g., list_directory with path ".").
+- Use simple relative paths like "src/main.py", "package.json" — do NOT repeat the working directory name.
+- Example: if working dir is /Users/user/src/myapp, use "src/index.ts" NOT "myapp/src/index.ts".
+
+GIT & GITHUB:
+- You have full access to git and the GitHub CLI (gh) via run_command.
+- When the user asks to PUSH EXISTING CODE to a repo:
+  1. Do NOT create new files or overwrite existing files — the code already exists in the working directory.
+  2. Check if git is already initialized: run_command with "git rev-parse --is-inside-work-tree"
+  3. If not initialized: run_command with "git init && git branch -M main"
+  4. If no .gitignore exists, create one appropriate for the project type
+  5. Stage and commit: run_command with "git add . && git commit -m 'Initial commit'"
+  6. Add remote and push: run_command with "git remote add origin <URL> && git push -u origin main"
+- If the remote repo does not exist, create it with: "gh repo create <owner/name> --public --source=. --push"
+- If push fails due to existing content, try: "git pull --rebase origin main" then push again.
+- If push fails with "remote already exists", use: "git remote set-url origin <URL>"
+- NEVER delete, overwrite, or modify the user's existing source files when they only ask to push code.
+- Always use the exact repo URL the user provides."#;
 
 pub async fn coding_agent_chat(
     messages: Vec<Value>,
@@ -1182,19 +1203,7 @@ pub async fn coding_agent_chat(
 ) -> Result<Value, String> {
     let client = Client::new();
     let tools = codegen::agent_tools_schema();
-    let max_iterations = 10;
-
-    // Normalize conversation format per publisher
-    let mut conversation: Vec<Value> = if publisher == "google" {
-        messages.iter().map(|m| {
-            json!({
-                "role": if m["role"] == "user" { "user" } else { "model" },
-                "parts": [{"text": m["content"].as_str().unwrap_or("")}]
-            })
-        }).collect()
-    } else {
-        messages
-    };
+    let max_iterations = 15;
 
     eprintln!("[CodingAgent] Starting — model={}, publisher={}, endpoint={}, working_dir={}", model_id, publisher, endpoint, working_dir);
     let _ = app_handle.emit("coding-agent-debug", json!({"msg": format!("Starting agent: model={}, endpoint={}, working_dir={}", model_id, endpoint, working_dir)}));
@@ -1206,6 +1215,36 @@ pub async fn coding_agent_chat(
         eprintln!("[CodingAgent] ERROR: {}", err);
         return Err(err);
     }
+
+    // Pre-scan working directory to give model context
+    let dir_listing = match codegen::exec_list_directory(&working_dir, ".", 2).await {
+        Ok(listing) => listing,
+        Err(_) => "empty directory".to_string(),
+    };
+    let context_prefix = format!(
+        "[Working directory: {}]\n[Current files:\n{}]\n\nUser request: ",
+        working_dir, dir_listing
+    );
+
+    // Normalize conversation format per publisher and inject context into first user message
+    let mut conversation: Vec<Value> = if publisher == "google" {
+        messages.iter().enumerate().map(|(i, m)| {
+            let text = m["content"].as_str().unwrap_or("");
+            let enriched = if i == 0 { format!("{}{}", context_prefix, text) } else { text.to_string() };
+            json!({
+                "role": if m["role"] == "user" { "user" } else { "model" },
+                "parts": [{"text": enriched}]
+            })
+        }).collect()
+    } else {
+        let mut msgs = messages;
+        if let Some(first) = msgs.first_mut() {
+            if let Some(content) = first.get("content").and_then(|c| c.as_str()) {
+                first["content"] = json!(format!("{}{}", context_prefix, content));
+            }
+        }
+        msgs
+    };
 
     for iteration in 0..max_iterations {
         let agent_model_id = if publisher == "anthropic" {

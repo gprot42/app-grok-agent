@@ -246,7 +246,7 @@ function App() {
           <div className="flex items-center gap-3">
             <span className="text-2xl">🖥️</span>
             <div>
-              <div className="text-lg font-medium theme-text">Coding Agent</div>
+              <div className="text-lg font-medium theme-text">Vibe Coding Agent</div>
               <div className="text-sm theme-text">Build & modify code with AI tool use — reads, writes, runs commands, and iterates</div>
             </div>
           </div>

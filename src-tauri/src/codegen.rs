@@ -88,7 +88,18 @@ fn resolve_path(base_dir: &str, path: &str) -> PathBuf {
     if p.is_absolute() {
         p.to_path_buf()
     } else {
-        Path::new(base_dir).join(p)
+        let joined = Path::new(base_dir).join(p);
+        // If the joined path doesn't exist but the raw path relative to base does,
+        // or if the relative path starts with the base dir's last component, strip it
+        if !joined.exists() {
+            let base = Path::new(base_dir);
+            if let Some(base_name) = base.file_name().and_then(|n| n.to_str()) {
+                if let Ok(stripped) = p.strip_prefix(base_name) {
+                    return base.join(stripped);
+                }
+            }
+        }
+        joined
     }
 }
 
@@ -101,6 +112,18 @@ pub async fn exec_read_file(base_dir: &str, path: &str) -> Result<String, String
 
 pub async fn exec_write_file(base_dir: &str, path: &str, content: &str) -> Result<String, String> {
     let full = resolve_path(base_dir, path);
+
+    // Safety: if the file already exists, create a backup
+    if full.exists() {
+        let backup = full.with_extension(
+            format!("{}.bak", full.extension().and_then(|e| e.to_str()).unwrap_or(""))
+        );
+        if let Err(e) = fs::copy(&full, &backup).await {
+            eprintln!("[CodingAgent] Warning: could not backup {}: {}", full.display(), e);
+        } else {
+            eprintln!("[CodingAgent] Backed up {} -> {}", full.display(), backup.display());
+        }
+    }
     if let Some(parent) = full.parent() {
         fs::create_dir_all(parent)
             .await
@@ -144,6 +167,14 @@ pub async fn exec_edit_file(
 }
 
 pub async fn exec_run_command(base_dir: &str, command: &str) -> Result<CommandResult, String> {
+    // Safety: block destructive commands
+    let cmd_lower = command.to_lowercase();
+    let blocked = ["rm -rf /", "rm -rf ~", "rm -rf *", "rm -rf .", "mkfs", "format ", "> /dev/"];
+    for pattern in &blocked {
+        if cmd_lower.contains(pattern) {
+            return Err(format!("Blocked dangerous command: {}", command));
+        }
+    }
     let output = Command::new("bash")
         .arg("-c")
         .arg(command)

@@ -376,7 +376,7 @@ export function CodingAgentPanel({
           <div className="flex flex-col items-center justify-center h-full theme-text-muted gap-6">
             <Code2 className="h-20 w-20 opacity-20" />
             <div className="text-center max-w-lg">
-              <div className="text-2xl font-semibold mb-2">Coding Agent</div>
+              <div className="text-2xl font-semibold mb-2">Vibe Coding Agent</div>
               <div className="text-base mb-4">
                 Describe what you want to build or modify. The agent will create files,
                 run commands, and iterate until it works.
