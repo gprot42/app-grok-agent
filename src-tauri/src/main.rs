@@ -188,10 +188,11 @@ async fn coding_agent_chat(
     project_id: String,
     working_dir: String,
     agent_timeout: Option<u64>,
+    agent_mode: Option<String>,
 ) -> Result<serde_json::Value, String> {
     let cancel_flag = app_handle.state::<Arc<AtomicBool>>().inner().clone();
     cancel_flag.store(false, Ordering::SeqCst);
-    api::coding_agent_chat(messages, model_id, publisher, endpoint, api_key, project_id, working_dir, agent_timeout, app_handle, cancel_flag).await
+    api::coding_agent_chat(messages, model_id, publisher, endpoint, api_key, project_id, working_dir, agent_timeout, agent_mode, app_handle, cancel_flag).await
 }
 
 #[tauri::command]

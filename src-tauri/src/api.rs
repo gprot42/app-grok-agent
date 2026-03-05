@@ -1204,6 +1204,29 @@ GIT & GITHUB:
 - NEVER delete, overwrite, or modify the user's existing source files when they only ask to push code.
 - Always use the exact repo URL the user provides."#;
 
+const PLAN_MODE_SYSTEM_PROMPT: &str = r#"You are an expert software architect that creates detailed project plans. You MUST use the provided tools to write planning files to disk.
+
+Available tools:
+- write_file: Create or overwrite files (auto-creates parent directories)
+- read_file: Read file contents
+- list_directory: View the file tree of a directory
+
+YOUR TASK — PLANNING ONLY:
+1. Analyze the user's request thoroughly.
+2. Write a PLAN.md file containing: project overview, architecture, tech stack, folder structure, and a step-by-step implementation roadmap.
+3. Write config/scaffold files: package.json (with all dependencies), tsconfig.json, vite.config.ts, tailwind.config.js, or whatever configs the chosen stack requires.
+4. STOP after writing plan and config files.
+
+CRITICAL RULES:
+1. Do NOT write any application source code — no components, pages, utilities, hooks, or styles.
+2. Do NOT run any commands — no npm install, no builds, no dev servers, no git commands.
+3. You may use read_file and list_directory to understand existing code if needed.
+4. After writing PLAN.md and config files, say "Plan complete" and STOP. Do not continue.
+
+PATHS:
+- All file paths are relative to the working directory (provided separately).
+- Use simple relative paths like "PLAN.md", "package.json" — do NOT repeat the working directory name."#;
+
 pub async fn coding_agent_chat(
     messages: Vec<Value>,
     model_id: String,
@@ -1213,6 +1236,7 @@ pub async fn coding_agent_chat(
     project_id: String,
     working_dir: String,
     agent_timeout: Option<u64>,
+    agent_mode: Option<String>,
     app_handle: AppHandle,
     cancel_flag: std::sync::Arc<std::sync::atomic::AtomicBool>,
 ) -> Result<Value, String> {
@@ -1288,10 +1312,16 @@ pub async fn coding_agent_chat(
         eprintln!("[CodingAgent] Iteration {} — POST {}", iteration, url);
         let _ = app_handle.emit("coding-agent-debug", json!({"msg": format!("Iteration {} — calling API: {}", iteration, url), "iteration": iteration}));
 
+        let system_prompt = if agent_mode.as_deref() == Some("plan") {
+            PLAN_MODE_SYSTEM_PROMPT
+        } else {
+            CODING_AGENT_SYSTEM_PROMPT
+        };
+
         let payload = if publisher == "anthropic" {
             let mut p = json!({
                 "anthropic_version": "vertex-2023-10-16",
-                "system": CODING_AGENT_SYSTEM_PROMPT,
+                "system": system_prompt,
                 "messages": conversation,
                 "max_tokens": 64000,
                 "tools": tools,
@@ -1304,7 +1334,7 @@ pub async fn coding_agent_chat(
             p
         } else {
             json!({
-                "system_instruction": { "parts": [{"text": CODING_AGENT_SYSTEM_PROMPT}] },
+                "system_instruction": { "parts": [{"text": system_prompt}] },
                 "contents": conversation,
                 "tools": [{ "function_declarations": tools.iter().map(|t| {
                     let mut params = t["input_schema"].clone();

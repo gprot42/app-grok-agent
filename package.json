@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
-    "tauri:build": "find src-tauri/target/release/bundle -name '*.dmg' -delete 2>/dev/null; tauri build"
+    "tauri:build": "find src-tauri/target/release/bundle -name '*.dmg' -delete 2>/dev/null; tauri build; find src-tauri/target/release/bundle -name 'rw.*.dmg' -delete 2>/dev/null"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

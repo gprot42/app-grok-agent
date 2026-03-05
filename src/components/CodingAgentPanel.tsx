@@ -162,14 +162,11 @@ export function CodingAgentPanel({
     if (!prompt.trim() || running) return;
 
     const userPrompt = prompt.trim();
-    const effectivePrompt = mode === "plan"
-      ? `[PLAN MODE — PLANNING ONLY] Your job is to create a project plan, NOT to implement it. Write the following files to disk:\n1. PLAN.md — detailed architecture, tech stack, folder structure, and step-by-step implementation roadmap\n2. package.json (or equivalent config) with all dependencies\n3. Any config/scaffold files (tsconfig, vite config, tailwind config, etc.)\n\nDo NOT write any application source code (no components, pages, utilities, or styles). Do NOT run any commands. STOP immediately after writing the plan and config files. The user will switch to Code mode to implement.\n\n${userPrompt}`
-      : userPrompt;
     setPrompt("");
     addMessage({ type: "user", content: userPrompt });
     setRunning(true);
 
-    const newHistory = [...conversationHistory, { role: "user", content: effectivePrompt }];
+    const newHistory = [...conversationHistory, { role: "user", content: userPrompt }];
     setConversationHistory(newHistory);
 
     await setupListeners();
@@ -188,6 +185,7 @@ export function CodingAgentPanel({
         projectId,
         workingDir,
         agentTimeout: agentTimeout || null,
+        agentMode: mode,
       });
     } catch (e) {
       addMessage({ type: "error", content: String(e) });
