@@ -248,6 +248,17 @@ fn coding_agent_stop(app_handle: tauri::AppHandle) {
 }
 
 #[tauri::command]
+async fn veo_generate_video(
+    api_key: String,
+    project_id: String,
+    prompt: String,
+    aspect_ratio: Option<String>,
+    duration_seconds: Option<u32>,
+) -> Result<serde_json::Value, String> {
+    api::veo_generate_video(api_key, project_id, prompt, aspect_ratio, duration_seconds).await
+}
+
+#[tauri::command]
 async fn save_image(image_base64: String, filename: String) -> Result<(), String> {
     storage::save_image(&image_base64, &filename).await
 }
@@ -628,6 +639,7 @@ fn main() {
             rag_embed_batch,
             coding_agent_chat,
             coding_agent_stop,
+            veo_generate_video,
             save_image,
             save_output,
             create_project,

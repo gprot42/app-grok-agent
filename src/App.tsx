@@ -10,6 +10,7 @@ import {
   ResearchSessionTabs,
   LayoutParserPanel,
   CodingAgentPanel,
+  VeoPanel,
 } from "./components";
 import { KnowledgeBasePanel } from "./components/KnowledgeBasePanel";
 import { useSettings, useChat } from "./hooks";
@@ -56,7 +57,7 @@ function App() {
 
   const researchSessions = useResearchSessions();
 
-  const [activeTab, setActiveTab] = useState<"chat" | "image" | "research" | "parser" | "code" | "rag">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "image" | "research" | "parser" | "code" | "video" | "rag">("chat");
   const [showSettings, setShowSettings] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -271,6 +272,15 @@ function App() {
               <DocLink url="https://ai.google.dev/gemini-api/docs/file-search" />
             </div>
           </div>
+        ) : activeTab === "video" ? (
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🎬</span>
+            <div>
+              <div className="text-lg font-medium theme-text">Veo Video Generation</div>
+              <div className="text-sm theme-text-muted">Generate videos from text prompts using Google Veo 3.1</div>
+              <DocLink url="https://ai.google.dev/gemini-api/docs/video" />
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-3">
             <span className="text-2xl">🖥️</span>
@@ -365,6 +375,13 @@ function App() {
             selectedEndpoint={selectedEndpoint}
             activeProject={activeProject}
             agentTimeout={settings.agentTimeout}
+          />
+        </div>
+        <div className={activeTab === "video" ? "flex flex-col flex-1 min-h-0" : "hidden"}>
+          <VeoPanel
+            apiKey={settings.aiStudioKey || settings.apiKey}
+            projectId={settings.projectId}
+            activeProject={activeProject}
           />
         </div>
         <div className={activeTab === "rag" ? "flex flex-col flex-1 min-h-0" : "hidden"}>

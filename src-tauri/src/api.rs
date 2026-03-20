@@ -1807,4 +1807,113 @@ async fn execute_tool(working_dir: &str, tool_name: &str, input: &Value) -> Resu
     }
 }
 
+pub async fn veo_generate_video(
+    api_key: String,
+    _project_id: String,
+    prompt: String,
+    aspect_ratio: Option<String>,
+    duration_seconds: Option<u32>,
+) -> Result<Value, String> {
+    let client = Client::new();
+    let ratio = aspect_ratio.unwrap_or_else(|| "16:9".to_string());
+    let duration = duration_seconds.unwrap_or(5);
+
+    let url = format!(
+        "{}/v1beta/models/veo-3.1-generate-preview:predictLongRunning?key={}",
+        AI_STUDIO_ENDPOINT, api_key
+    );
+
+    let payload = json!({
+        "instances": [{
+            "prompt": prompt
+        }],
+        "parameters": {
+            "aspectRatio": ratio,
+            "durationSeconds": duration,
+            "sampleCount": 1
+        }
+    });
+
+    let response = client
+        .post(&url)
+        .header("Content-Type", "application/json")
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        let body = response.text().await.unwrap_or_default();
+        return Err(format!("API error {}: {}", status, body));
+    }
+
+    let body: Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    let op_name = body.get("name").and_then(|n| n.as_str()).unwrap_or("");
+    if op_name.is_empty() {
+        return Err("No operation name returned".to_string());
+    }
+
+    let poll_url = format!(
+        "{}/v1beta/{}?key={}",
+        AI_STUDIO_ENDPOINT, op_name, api_key
+    );
+
+    for _ in 0..120 {
+        tokio::time::sleep(std::time::Duration::from_secs(5)).await;
+
+        let poll_resp = client
+            .get(&poll_url)
+            .send()
+            .await
+            .map_err(|e| format!("Poll failed: {}", e))?;
+
+        let poll_body: Value = poll_resp
+            .json()
+            .await
+            .map_err(|e| format!("Failed to parse poll: {}", e))?;
+
+        if let Some(done) = poll_body.get("done").and_then(|d| d.as_bool()) {
+            if done {
+                if let Some(err) = poll_body.get("error") {
+                    return Err(format!("Generation failed: {}", err));
+                }
+                if let Some(response) = poll_body.get("response") {
+                    if let Some(videos) = response.get("generateVideoResponse")
+                        .and_then(|r| r.get("generatedSamples"))
+                        .and_then(|s| s.as_array())
+                    {
+                        if let Some(first) = videos.first() {
+                            if let Some(video) = first.get("video") {
+                                if let Some(uri) = video.get("uri").and_then(|u| u.as_str()) {
+                                    let video_resp = client
+                                        .get(uri)
+                                        .send()
+                                        .await
+                                        .map_err(|e| format!("Download failed: {}", e))?;
+                                    let video_bytes = video_resp
+                                        .bytes()
+                                        .await
+                                        .map_err(|e| format!("Failed to read video: {}", e))?;
+                                    let video_b64 = BASE64.encode(&video_bytes);
+                                    return Ok(json!({
+                                        "videoData": video_b64,
+                                        "videoUrl": uri
+                                    }));
+                                }
+                            }
+                        }
+                    }
+                }
+                return Err("Completed but no video data found in response".to_string());
+            }
+        }
+    }
+
+    Err("Video generation timed out after 10 minutes".to_string())
+}
 
