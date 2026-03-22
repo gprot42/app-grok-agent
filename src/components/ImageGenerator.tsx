@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface ImageGeneratorProps {
   apiKey: string;
-  onGenerateImage: (options: { prompt: string; apiKey: string; editImage?: string; editImageMimeType?: string; modelId?: string }) => Promise<string | undefined>;
+  onGenerateImage: (options: { prompt: string; apiKey: string; editImage?: string; editImageMimeType?: string; modelId?: string; searchMode?: string }) => Promise<string | undefined>;
   generatedImages: string[];
   isLoading: boolean;
   error: string | null;
@@ -44,6 +44,7 @@ export function ImageGenerator({
   } | null>(null);
   const [savedIdx, setSavedIdx] = useState<number | null>(null);
   const [imageFormat, setImageFormat] = useState<"png" | "jpg" | "webp">("png");
+  const [searchMode, setSearchMode] = useState<"none" | "web" | "web_images" | "reference">("none");
   const [textareaHeight, setTextareaHeight] = useState(100);
   const dragStartY = useRef<number>(0);
   const dragStartHeight = useRef<number>(0);
@@ -88,6 +89,7 @@ export function ImageGenerator({
       editImage: sourceImage?.data,
       editImageMimeType: sourceImage?.mimeType,
       modelId: imageModelId,
+      searchMode: searchMode === "none" ? undefined : searchMode,
     });
     if (result) {
       setImagePrompts(prev => [...prev, usedPrompt]);
@@ -375,13 +377,38 @@ export function ImageGenerator({
             }
           }}
           placeholder={
-            sourceImage
-              ? "Describe how to edit this image... (Ctrl+Enter)"
-              : "Describe the image you want to create... (Ctrl+Enter)"
+            searchMode === "reference"
+              ? "Describe the scene to place your subject in... (Ctrl+Enter)"
+              : sourceImage
+                ? "Describe how to edit this image... (Ctrl+Enter)"
+                : "Describe the image you want to create... (Ctrl+Enter)"
           }
           className="w-full resize-none"
           style={{ height: `${textareaHeight}px`, minHeight: '60px', maxHeight: '300px' }}
         />
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs font-medium theme-text">Mode:</span>
+          {([
+            { value: "none", label: "Text → Image", hint: "Pure creative generation from text" },
+            { value: "web", label: "+ Search (Web)", hint: "Ground in real-world facts via web search" },
+            { value: "web_images", label: "+ Search (Web + Images)", hint: "Visual accuracy from retrieved images" },
+            { value: "reference", label: "+ Photo to Scene", hint: "Upload a photo of a person or object, then describe a new scene to place them in" },
+          ] as const).map((mode) => (
+            <button
+              key={mode.value}
+              onClick={() => setSearchMode(mode.value)}
+              title={mode.hint}
+              className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                searchMode === mode.value
+                  ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium"
+                  : "theme-text-muted hover:bg-gray-100 dark:hover:bg-gray-800"
+              }`}
+            >
+              {mode.label}
+            </button>
+          ))}
+        </div>
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

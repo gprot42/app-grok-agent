@@ -143,6 +143,7 @@ pub async fn generate_image(
     edit_image: Option<String>,
     edit_image_mime_type: Option<String>,
     model_id: Option<String>,
+    search_mode: Option<String>,
 ) -> Result<String, String> {
     let client = Client::new();
     let model = model_id.unwrap_or_else(|| "gemini-3-pro-image-preview".to_string());
@@ -154,7 +155,6 @@ pub async fn generate_image(
     let mut parts = vec![json!({"text": prompt})];
 
     if let Some(image_data) = edit_image {
-        // Use provided MIME type, default to image/png if not specified
         let mime_type = edit_image_mime_type.unwrap_or_else(|| "image/png".to_string());
         parts.push(json!({
             "inline_data": {
@@ -164,7 +164,7 @@ pub async fn generate_image(
         }));
     }
 
-    let payload = json!({
+    let mut payload = json!({
         "contents": [{
             "parts": parts
         }],
@@ -172,6 +172,31 @@ pub async fn generate_image(
             "responseModalities": ["TEXT", "IMAGE"]
         }
     });
+
+    match search_mode.as_deref() {
+        Some("web") => {
+            payload["tools"] = json!([{
+                "google_search": {
+                    "search_types": ["web_search"]
+                }
+            }]);
+        }
+        Some("web_images") => {
+            payload["tools"] = json!([{
+                "google_search": {
+                    "search_types": ["web_search", "image_search"]
+                }
+            }]);
+        }
+        Some("reference") => {
+            payload["tools"] = json!([{
+                "google_search": {
+                    "search_types": ["web_search", "image_search"]
+                }
+            }]);
+        }
+        _ => {}
+    }
 
     let response = client
         .post(&url)
