@@ -11,6 +11,19 @@ interface LiveMessage {
   text: string;
 }
 
+type LegacyNavigator = Navigator & {
+  getUserMedia?: (
+    constraints: MediaStreamConstraints,
+    successCallback: (stream: MediaStream) => void,
+    errorCallback: (err: unknown) => void
+  ) => void;
+  webkitGetUserMedia?: (
+    constraints: MediaStreamConstraints,
+    successCallback: (stream: MediaStream) => void,
+    errorCallback: (err: unknown) => void
+  ) => void;
+};
+
 const MODEL_ID = "gemini-3.1-flash-live-preview";
 const MODEL_DISPLAY = "Gemini 3.1 Flash Live";
 const WS_URL = "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent";
@@ -278,7 +291,7 @@ export function GeminiLivePanel({ apiKey }: GeminiLivePanelProps) {
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await getUserMediaCompat({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true },
       });
       micStreamRef.current = stream;
@@ -322,7 +335,7 @@ export function GeminiLivePanel({ apiKey }: GeminiLivePanelProps) {
       setMicActive(true);
     } catch (err) {
       console.error("Mic access failed:", err);
-      setConnectionError("Microphone access denied");
+      setConnectionError("Microphone unavailable in this runtime or permission denied");
     }
   }, [micActive]);
 
@@ -463,4 +476,20 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
     binary += String.fromCharCode(bytes[i]);
   }
   return btoa(binary);
+}
+
+async function getUserMediaCompat(constraints: MediaStreamConstraints): Promise<MediaStream> {
+  if (navigator.mediaDevices?.getUserMedia) {
+    return navigator.mediaDevices.getUserMedia(constraints);
+  }
+
+  const legacy = navigator as LegacyNavigator;
+  const legacyGetUserMedia = legacy.getUserMedia || legacy.webkitGetUserMedia;
+  if (!legacyGetUserMedia) {
+    throw new Error("Microphone API not available in this runtime");
+  }
+
+  return new Promise((resolve, reject) => {
+    legacyGetUserMedia.call(legacy, constraints, resolve, reject);
+  });
 }
