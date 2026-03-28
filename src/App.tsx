@@ -13,6 +13,7 @@ import {
   VeoPanel,
 } from "./components";
 import { GeminiLivePanel } from "./components/GeminiLivePanel";
+import { GeminiTTSPanel } from "./components/GeminiTTSPanel";
 import { KnowledgeBasePanel } from "./components/KnowledgeBasePanel";
 import { useSettings, useChat } from "./hooks";
 import { useResearchSessions } from "./hooks/useResearchSessions";
@@ -58,7 +59,7 @@ function App() {
 
   const researchSessions = useResearchSessions();
 
-  const [activeTab, setActiveTab] = useState<"chat" | "image" | "research" | "parser" | "code" | "video" | "rag" | "live">("chat");
+  const [activeTab, setActiveTab] = useState<"chat" | "image" | "research" | "parser" | "code" | "video" | "rag" | "live" | "tts">("chat");
   const [showSettings, setShowSettings] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [showAbout, setShowAbout] = useState(false);
@@ -291,6 +292,15 @@ function App() {
               <DocLink url="https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-live-preview" />
             </div>
           </div>
+        ) : activeTab === "tts" ? (
+          <div className="flex items-center gap-3">
+            <span className="text-2xl">🔊</span>
+            <div>
+              <div className="text-lg font-medium theme-text">Gemini Text-to-Speech</div>
+              <div className="text-sm theme-text-muted">Generate natural speech with 30 voices using <span className="font-mono text-xs">gemini-2.5-flash-preview-tts</span> / <span className="font-mono text-xs">pro-preview-tts</span></div>
+              <DocLink url="https://ai.google.dev/gemini-api/docs/speech-generation" />
+            </div>
+          </div>
         ) : (
           <div className="flex items-center gap-3">
             <span className="text-2xl">🖥️</span>
@@ -401,6 +411,11 @@ function App() {
         </div>
         <div className={activeTab === "live" ? "flex flex-col flex-1 min-h-0" : "hidden"}>
           <GeminiLivePanel
+            apiKey={settings.aiStudioKey || settings.apiKey}
+          />
+        </div>
+        <div className={activeTab === "tts" ? "flex flex-col flex-1 min-h-0" : "hidden"}>
+          <GeminiTTSPanel
             apiKey={settings.aiStudioKey || settings.apiKey}
           />
         </div>

@@ -46,7 +46,8 @@
     ],
     "macOS": {
       "minimumSystemVersion": "10.15",
-      "frameworks": []
+      "frameworks": [],
+      "entitlements": "Entitlements.plist"
     }
   },
   "plugins": {}

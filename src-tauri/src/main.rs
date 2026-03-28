@@ -259,6 +259,16 @@ async fn veo_generate_video(
 }
 
 #[tauri::command]
+async fn tts_generate(
+    api_key: String,
+    model: String,
+    text: String,
+    speech_config: serde_json::Value,
+) -> Result<serde_json::Value, String> {
+    api::tts_generate(api_key, model, text, speech_config).await
+}
+
+#[tauri::command]
 async fn save_image(image_base64: String, filename: String) -> Result<(), String> {
     storage::save_image(&image_base64, &filename).await
 }
@@ -640,6 +650,7 @@ fn main() {
             coding_agent_chat,
             coding_agent_stop,
             veo_generate_video,
+            tts_generate,
             save_image,
             save_output,
             create_project,

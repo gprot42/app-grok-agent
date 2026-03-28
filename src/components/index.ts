@@ -15,3 +15,4 @@ export { LayoutParserPanel } from "./LayoutParserPanel";
 export { CodingAgentPanel } from "./CodingAgentPanel";
 export { VeoPanel } from "./VeoPanel";
 export { GeminiLivePanel } from "./GeminiLivePanel";
+export { GeminiTTSPanel } from "./GeminiTTSPanel";

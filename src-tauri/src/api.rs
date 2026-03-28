@@ -1944,3 +1944,51 @@ pub async fn veo_generate_video(
     Err("Video generation timed out after 10 minutes".to_string())
 }
 
+pub async fn tts_generate(
+    api_key: String,
+    model: String,
+    text: String,
+    speech_config: Value,
+) -> Result<Value, String> {
+    let client = Client::new();
+    let url = format!(
+        "{}/v1beta/models/{}:generateContent?key={}",
+        AI_STUDIO_ENDPOINT, model, api_key
+    );
+
+    let payload = json!({
+        "contents": [{"parts": [{"text": text}]}],
+        "generationConfig": {
+            "responseModalities": ["AUDIO"],
+            "speechConfig": speech_config
+        }
+    });
+
+    let resp = client
+        .post(&url)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !resp.status().is_success() {
+        let status = resp.status();
+        let body = resp.text().await.unwrap_or_default();
+        // Try to extract a clear error message
+        if let Ok(parsed) = serde_json::from_str::<Value>(&body) {
+            if let Some(msg) = parsed["error"]["message"].as_str() {
+                let code = parsed["error"]["status"].as_str().unwrap_or("");
+                return Err(format!("{}{}{}", code, if code.is_empty() { "" } else { ": " }, msg));
+            }
+        }
+        return Err(format!("HTTP {}: {}", status, &body[..body.len().min(500)]));
+    }
+
+    let data: Value = resp
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    Ok(data)
+}
+

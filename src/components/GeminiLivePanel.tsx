@@ -157,6 +157,12 @@ export function GeminiLivePanel({ apiKey }: GeminiLivePanelProps) {
           if (data.serverContent) {
             const parts = data.serverContent.modelTurn?.parts || [];
 
+            // Handle interruption — clear playback buffer immediately
+            if (data.serverContent.interrupted) {
+              workletNodeRef.current?.port.postMessage({ type: "clear" });
+              setModelSpeaking(false);
+            }
+
             for (const part of parts) {
               if (part.text && !part.thought) {
                 pendingModelTextRef.current += part.text;
