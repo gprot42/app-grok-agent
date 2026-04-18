@@ -1855,6 +1855,7 @@ pub async fn veo_generate_video(
     model: Option<String>,
     main_image: Option<AttachedFile>,
     reference_images: Option<Vec<AttachedFile>>,
+    duration_seconds: Option<u32>,
 ) -> Result<Value, String> {
     let client = Client::new();
     let ratio = aspect_ratio.unwrap_or_else(|| "16:9".to_string());
@@ -1898,7 +1899,8 @@ pub async fn veo_generate_video(
         "instances": [instance],
         "parameters": {
             "aspectRatio": ratio,
-            "sampleCount": 1
+            "sampleCount": 1,
+            "durationSeconds": duration_seconds.unwrap_or(8),
         }
     });
 

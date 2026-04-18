@@ -54,6 +54,7 @@ export function VeoPanel({ apiKey, projectId, activeProject }: VeoPanelProps) {
   const [loading, setLoading] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<"16:9" | "9:16">("16:9");
   const [veoModel, setVeoModel] = useState<"veo-3.1" | "veo-3.1-lite">("veo-3.1");
+  const [durationSeconds, setDurationSeconds] = useState<4 | 6 | 8>(8);
   const [mainImage, setMainImage] = useState<RefImage | null>(null);
   const [refImages, setRefImages] = useState<RefImage[]>([]);
   const resultsEndRef = useRef<HTMLDivElement>(null);
@@ -89,6 +90,7 @@ export function VeoPanel({ apiKey, projectId, activeProject }: VeoPanelProps) {
         referenceImages: refImages.length
           ? refImages.map((r) => ({ path: r.path, data: r.data, mimeType: r.mimeType }))
           : null,
+        durationSeconds,
       });
 
       setVideos((prev) =>
@@ -254,6 +256,24 @@ export function VeoPanel({ apiKey, projectId, activeProject }: VeoPanelProps) {
                   }`}
                 >
                   {ratio}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs font-medium theme-text">Duration:</span>
+            <div className="flex gap-1">
+              {([4, 6, 8] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDurationSeconds(d)}
+                  className={`px-2 py-1 text-xs rounded-md transition-colors ${
+                    durationSeconds === d
+                      ? "bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-medium"
+                      : "theme-text-muted hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                >
+                  {d}s
                 </button>
               ))}
             </div>
