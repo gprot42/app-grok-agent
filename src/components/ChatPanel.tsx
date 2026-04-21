@@ -335,6 +335,13 @@ export function ChatPanel({
                       </svg>
                     )}
                   </button>
+                  {msg.role === "assistant" && msg.cost !== undefined && msg.inputTokens !== undefined && msg.outputTokens !== undefined && (
+                    <div className="flex-1 flex justify-end items-center text-xs theme-text-muted font-mono pr-1 select-none">
+                      <span title={`${msg.inputTokens} input tokens`}>{formatTokens(msg.inputTokens)}↑</span>&nbsp;
+                      <span title={`${msg.outputTokens} output tokens`}>{formatTokens(msg.outputTokens)}↓</span>&nbsp;
+                      <span className="text-[10px] text-gray-400 dark:text-gray-500">({formatCost(msg.cost)})</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

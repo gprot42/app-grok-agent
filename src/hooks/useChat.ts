@@ -106,7 +106,24 @@ export function useChat() {
         return;
       }
 
-      const assistantMessage: Message = { role: "assistant", content: response.content };
+      let cost: number | undefined;
+      if (options.model?.pricing) {
+        const inputCost = (response.inputTokens / 1_000_000) * options.model.pricing.input;
+        const outputCost = (response.outputTokens / 1_000_000) * options.model.pricing.output;
+        cost = inputCost + outputCost;
+        // Discount for flex tier
+        if (options.serviceTier === "flex") {
+          cost = cost * 0.5;
+        }
+      }
+
+      const assistantMessage: Message = {
+        role: "assistant",
+        content: response.content,
+        inputTokens: response.inputTokens,
+        outputTokens: response.outputTokens,
+        cost
+      };
 
       setSessions(prev => prev.map(s =>
         s.id === activeSessionId
