@@ -55,10 +55,9 @@ export function SettingsPanel({
   const [kilocodeKey, setKilocodeKey] = useState(settings.kilocodeKey || "");
   const [customLogin, setCustomLogin] = useState(settings.customLogin || "");
   const [customPassword, setCustomPassword] = useState(settings.customPassword || "");
-  const [projectId, setProjectId] = useState(settings.projectId);
+  const [projectId, setProjectId] = useState(settings.projectId || "");
   const [hasServiceAccount, setHasServiceAccount] = useState(false);
   const [saProjectId, setSaProjectId] = useState<string | null>(null);
-  const [setupProjectId, setSetupProjectId] = useState("");
   const [setupLoading, setSetupLoading] = useState(false);
   const [setupResult, setSetupResult] = useState<{ success: boolean; message: string } | null>(null);
   const [gcloudAuth, setGcloudAuth] = useState<{ authenticated: boolean; account?: string; error?: string } | null>(null);
@@ -72,14 +71,14 @@ export function SettingsPanel({
     setKilocodeKey(settings.kilocodeKey || "");
     setCustomLogin(settings.customLogin || "");
     setCustomPassword(settings.customPassword || "");
-    setProjectId(settings.projectId);
+    setProjectId(settings.projectId || "");
   }, [settings]);
 
   useEffect(() => {
     invoke<boolean>("has_service_account").then(setHasServiceAccount);
     invoke<string | null>("get_service_account_project_id").then((id) => {
       setSaProjectId(id);
-      if (id) setSetupProjectId(id);
+      if (id && !settings.projectId) setProjectId(id);
     });
     checkGcloudAuth();
   }, []);
@@ -136,7 +135,7 @@ export function SettingsPanel({
   };
 
   const handleVertexSetup = async (remove: boolean) => {
-    if (!setupProjectId.trim()) {
+    if (!projectId.trim()) {
       setSetupResult({ success: false, message: "Please enter a Project ID" });
       return;
     }
@@ -146,7 +145,7 @@ export function SettingsPanel({
 
     try {
       const result = await invoke<string>("run_vertex_setup", {
-        projectId: setupProjectId,
+        projectId,
         remove,
       });
       setSetupResult({ success: true, message: result });
@@ -160,8 +159,7 @@ export function SettingsPanel({
       setSaProjectId(newId);
       
       if (!remove && updated) {
-        onUpdateSettings({ projectId: setupProjectId });
-        setProjectId(setupProjectId);
+        onUpdateSettings({ projectId });
       }
       if (remove) {
         setSaProjectId(null);
@@ -393,8 +391,8 @@ export function SettingsPanel({
                     <>
                       <Input
                         label="GCP Project ID"
-                        value={setupProjectId}
-                        onChange={(e) => setSetupProjectId(e.target.value)}
+                        value={projectId}
+                        onChange={(e) => setProjectId(e.target.value)}
                         placeholder="my-gcp-project"
                         autoCapitalize="none"
                         autoCorrect="off"

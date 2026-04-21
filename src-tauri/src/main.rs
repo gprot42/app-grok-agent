@@ -359,10 +359,15 @@ async fn run_vertex_setup(project_id: String, remove: bool) -> Result<String, St
             .join("01-setup-vertex-sa.sh")
     } else {
         let exe_path = env::current_exe().map_err(|e| e.to_string())?;
-        exe_path
-            .parent()
-            .unwrap()
-            .join("../Resources/scripts/01-setup-vertex-sa.sh")
+        let res_dir = exe_path.parent().unwrap().join("../Resources");
+        let path1 = res_dir.join("scripts/01-setup-vertex-sa.sh");
+        let path2 = res_dir.join("_up_/scripts/01-setup-vertex-sa.sh");
+        
+        if path1.exists() {
+            path1
+        } else {
+            path2
+        }
     };
     
     if !script_path.exists() {
@@ -404,10 +409,15 @@ fn get_scripts_path() -> Result<String, String> {
             .join("scripts")
     } else {
         let exe_path = env::current_exe().map_err(|e| e.to_string())?;
-        exe_path
-            .parent()
-            .unwrap()
-            .join("../Resources/scripts")
+        let res_dir = exe_path.parent().unwrap().join("../Resources");
+        let path1 = res_dir.join("scripts");
+        let path2 = res_dir.join("_up_/scripts");
+        
+        if path1.exists() {
+            path1
+        } else {
+            path2
+        }
     };
     
     Ok(scripts_path.to_string_lossy().to_string())
