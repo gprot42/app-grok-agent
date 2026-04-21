@@ -10,6 +10,9 @@
 
 set -e
 
+# Add common paths for gcloud
+export PATH="$PATH:/opt/homebrew/bin:/usr/local/bin:$HOME/google-cloud-sdk/bin:$HOME/.local/google-cloud-sdk/bin"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
