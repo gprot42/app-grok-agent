@@ -578,13 +578,18 @@ pub async fn rag_query(api_key: String, store_names: Vec<String>, query: String,
 
 pub async fn rag_embed_content(api_key: String, text: String, task_type: Option<String>) -> Result<Value, String> {
     let client = Client::new();
-    let url = format!("{}/v1beta/models/gemini-embedding-exp-03-07:embedContent?key={}", AI_STUDIO_ENDPOINT, api_key);
-    let mut payload = json!({
-        "content": { "parts": [{ "text": text }] }
+    let url = format!("{}/v1beta/models/gemini-embedding-2:embedContent?key={}", AI_STUDIO_ENDPOINT, api_key);
+    let formatted_text = match task_type.as_deref() {
+        Some("SEMANTIC_SIMILARITY") => format!("task: sentence similarity | query: {}", text),
+        Some("RETRIEVAL_DOCUMENT") => format!("title: none | text: {}", text),
+        Some("RETRIEVAL_QUERY") => format!("task: search result | query: {}", text),
+        Some("CLASSIFICATION") => format!("task: classification | query: {}", text),
+        Some("CLUSTERING") => format!("task: clustering | query: {}", text),
+        _ => text,
+    };
+    let payload = json!({
+        "content": { "parts": [{ "text": formatted_text }] }
     });
-    if let Some(tt) = task_type {
-        payload["taskType"] = json!(tt);
-    }
     let resp = client
         .post(&url)
         .json(&payload)
@@ -602,16 +607,20 @@ pub async fn rag_embed_content(api_key: String, text: String, task_type: Option<
 
 pub async fn rag_embed_batch(api_key: String, texts: Vec<String>, task_type: Option<String>) -> Result<Value, String> {
     let client = Client::new();
-    let url = format!("{}/v1beta/models/gemini-embedding-exp-03-07:batchEmbedContents?key={}", AI_STUDIO_ENDPOINT, api_key);
+    let url = format!("{}/v1beta/models/gemini-embedding-2:batchEmbedContents?key={}", AI_STUDIO_ENDPOINT, api_key);
     let requests: Vec<Value> = texts.iter().map(|t| {
-        let mut req = json!({
-            "model": "models/gemini-embedding-exp-03-07",
-            "content": { "parts": [{ "text": t }] }
-        });
-        if let Some(ref tt) = task_type {
-            req["taskType"] = json!(tt);
-        }
-        req
+        let formatted_text = match task_type.as_deref() {
+            Some("SEMANTIC_SIMILARITY") => format!("task: sentence similarity | query: {}", t),
+            Some("RETRIEVAL_DOCUMENT") => format!("title: none | text: {}", t),
+            Some("RETRIEVAL_QUERY") => format!("task: search result | query: {}", t),
+            Some("CLASSIFICATION") => format!("task: classification | query: {}", t),
+            Some("CLUSTERING") => format!("task: clustering | query: {}", t),
+            _ => t.to_string(),
+        };
+        json!({
+            "model": "models/gemini-embedding-2",
+            "content": { "parts": [{ "text": formatted_text }] }
+        })
     }).collect();
     let resp = client
         .post(&url)
