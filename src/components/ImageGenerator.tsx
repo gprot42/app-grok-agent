@@ -60,7 +60,13 @@ export function ImageGenerator({
 
       if (selected) {
         const fileData = await readFile(selected);
-        const base64 = btoa(String.fromCharCode(...fileData));
+        let binary = "";
+        const chunkSize = 32768;
+        for (let i = 0; i < fileData.length; i += chunkSize) {
+          const chunk = fileData.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const base64 = btoa(binary);
         const ext = selected.split(".").pop()?.toLowerCase() || "png";
 
         let mimeType = "image/png";
@@ -237,7 +243,27 @@ export function ImageGenerator({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 scrollbar-thin relative z-0">
-        {generatedImages.length === 0 && !isLoading && (
+        {sourceImage && !generatedImages.includes(sourceImage.data) && (
+          <div className="mb-4 relative group inline-block ring-2 ring-indigo-500 rounded-lg p-1">
+            <img 
+              src={`data:${sourceImage.mimeType};base64,${sourceImage.data}`} 
+              alt="Source" 
+              className="w-48 h-auto rounded-md shadow-sm"
+            />
+            <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-1 rounded">
+              Source: {sourceImage.name}
+            </div>
+            <button 
+              onClick={() => setSourceImage(null)}
+              className="absolute top-2 right-2 bg-black/60 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Remove source image"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
+          </div>
+        )}
+
+        {generatedImages.length === 0 && !sourceImage && !isLoading && (
           <div className="flex flex-col items-center justify-center h-full text-gray-400 dark:text-tokyo-muted gap-6">
             <div className="text-8xl">🍌</div>
             <div className="text-center">

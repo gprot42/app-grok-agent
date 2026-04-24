@@ -182,7 +182,13 @@ export function ChatPanel({
 
       if (selected) {
         const fileData = await readFile(selected);
-        const base64 = btoa(String.fromCharCode(...fileData));
+        let binary = "";
+        const chunkSize = 32768;
+        for (let i = 0; i < fileData.length; i += chunkSize) {
+          const chunk = fileData.subarray(i, i + chunkSize);
+          binary += String.fromCharCode.apply(null, Array.from(chunk));
+        }
+        const base64 = btoa(binary);
         const ext = selected.split(".").pop()?.toLowerCase() || "";
 
         let mimeType = "application/octet-stream";
