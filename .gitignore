@@ -1,0 +1,113 @@
+# Built application files
+*.apk
+*.aar
+*.ap_
+*.dex
+*.class
+*.so
+
+# Generated files
+bin/
+gen/
+out/
+build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Local configuration file (sdk path, etc)
+local.properties
+
+# Log Files
+*.log
+
+# Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+*.swp
+*~
+
+# Gradle
+.gradle/
+build/
+
+# Package Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# virtual machine crash logs
+hs_err_pid*
+
+# Keystore files
+*.jks
+*.keystore
+
+# Google Services (e.g. Firebase)
+google-services.json
+
+# Android NDK
+*.o
+*.so
+
+# Mac
+.DS_Store
+
+# Windows
+Thumbs.db
+
+# Misc
+*.bak
+
+# Renamed from aicoder - ignore old package remnants if any
+com/aicoder/
+
+# Additional for Kotlin/Compose
+.kotlin/
+*.kotlin_module
+
+# Auto-generated entries
+# Dependencies
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs
+dist/
+build/
+*.log
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Sensitive files (auto-detected)
+build
+build.gradle.kts
+build.gradle.kts.bak
+build.sh
+build.sh.bak
+
