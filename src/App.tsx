@@ -121,6 +121,7 @@ function App() {
     showApiKeyPrompt, setShowApiKeyPrompt,
     selectedModel,
     selectedImageModel,
+    selectedVideoModel, setSelectedVideoModel,
     selectedEndpoint,
     use1MContext,
     useMemory,
@@ -268,12 +269,23 @@ function App() {
               </div>
             </div>
           ) : activeTab === "video" ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-4">
               <span className="text-2xl">🎬</span>
               <div>
                 <div className="text-lg font-medium theme-text">Grok Video</div>
-                <div className="text-sm theme-text">Generate videos from text prompts</div>
+                <div className="text-sm theme-text italic">
+                  {MODELS[selectedVideoModel]?.description}
+                </div>
               </div>
+              <select
+                value={selectedVideoModel}
+                onChange={(e) => setSelectedVideoModel(e.target.value)}
+                className="ml-4 text-sm rounded border theme-border theme-surface theme-text px-2 py-1"
+              >
+                {Object.values(MODELS).filter(m => m.supportsVideoGeneration).map(m => (
+                  <option key={m.id} value={m.id}>{m.displayName}</option>
+                ))}
+              </select>
             </div>
           ) : activeTab === "voice" ? (
             <div className="flex items-center gap-3">
@@ -357,7 +369,7 @@ function App() {
 
           {/* Video — always mounted to preserve generation state */}
           <div className={`flex flex-col flex-1 min-h-0 overflow-hidden ${activeTab === "video" ? "" : "hidden"}`}>
-            <GrokVideoPanel apiKey={settings.xaiKey || settings.apiKey} />
+            <GrokVideoPanel apiKey={settings.xaiKey || settings.apiKey} modelId={MODELS[selectedVideoModel]?.modelId} />
           </div>
 
           {/* Voice — always mounted to preserve audio state */}

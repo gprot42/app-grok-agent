@@ -3,12 +3,15 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { Button } from "@shared/components/ui/button";
 import { Textarea } from "@shared/components/ui/textarea";
+import { MODELS } from "@shared/constants/models";
 
 interface GrokVideoPanelProps {
   apiKey: string;
+  modelId?: string;
 }
 
-export function GrokVideoPanel({ apiKey }: GrokVideoPanelProps) {
+export function GrokVideoPanel({ apiKey, modelId = "grok-imagine-video" }: GrokVideoPanelProps) {
+  const modelConfig = Object.values(MODELS).find(m => m.modelId === modelId);
   const [prompt, setPrompt] = useState("");
   const [duration, setDuration] = useState(8);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +43,7 @@ export function GrokVideoPanel({ apiKey }: GrokVideoPanelProps) {
       const videoUrlResult = await invoke<string>("generate_video", {
         prompt: prompt,
         apiKey,
-        modelId: "grok-imagine-video",
+        modelId,
         durationSeconds: duration,
       });
       setVideoUrl(videoUrlResult);
@@ -89,7 +92,7 @@ export function GrokVideoPanel({ apiKey }: GrokVideoPanelProps) {
             </svg>
             <div>
               <div className="text-xl font-semibold">Generate videos from text prompts</div>
-              <div className="text-sm font-mono text-gray-400 dark:text-tokyo-muted mt-1.5">model: grok-imagine-video · v1.3.54 · $0.05/sec</div>
+              <div className="text-sm font-mono text-gray-400 dark:text-tokyo-muted mt-1.5">model: {modelId} · {modelConfig?.description ?? ""}</div>
             </div>
           </div>
           <Textarea
