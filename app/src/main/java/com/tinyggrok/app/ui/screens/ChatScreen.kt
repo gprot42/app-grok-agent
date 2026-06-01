@@ -12,6 +12,10 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -49,6 +53,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -60,6 +66,10 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.filter
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -89,6 +99,10 @@ fun ChatScreen(
     val listState = rememberLazyListState()
     val clipboard = LocalClipboardManager.current
     val context = LocalContext.current
+
+    // Whole-screen pinch-to-zoom state (applies to the entire chat content, not just LLM output)
+    var screenScale by remember { mutableStateOf(1f) }
+    var screenOffset by remember { mutableStateOf(Offset.Zero) }
 
     val imagePicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -150,6 +164,31 @@ fun ChatScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .navigationBarsPadding()
+                // Two-finger pinch zooms/pans the entire screen content. Single-finger
+                // gestures are left untouched so list scrolling & text selection still work.
+                .pointerInput(Unit) {
+                    awaitEachGesture {
+                        awaitFirstDown(requireUnconsumed = false)
+                        do {
+                            val event = awaitPointerEvent()
+                            if (event.changes.size >= 2) {
+                                val zoom = event.calculateZoom()
+                                val pan = event.calculatePan()
+                                val newScale = (screenScale * zoom).coerceIn(1f, 4f)
+                                screenScale = newScale
+                                screenOffset = if (newScale > 1f) screenOffset + pan else Offset.Zero
+                                event.changes.forEach { it.consume() }
+                            }
+                        } while (event.changes.any { it.pressed })
+                    }
+                }
+                .graphicsLayer {
+                    scaleX = screenScale
+                    scaleY = screenScale
+                    translationX = screenOffset.x
+                    translationY = screenOffset.y
+                    transformOrigin = TransformOrigin(0f, 0f)
+                }
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -541,9 +580,10 @@ private fun HtmlContent(html: String, fontSize: Float = 14f) {
             WebView(context).apply {
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
                 settings.javaScriptEnabled = false
-                // Pinch-to-zoom support (two-finger gesture won't conflict with list scroll)
-                settings.setSupportZoom(true)
-                settings.builtInZoomControls = true
+                // Zoom is handled at the screen level (pinch zooms the whole screen),
+                // so disable the WebView's own pinch zoom to avoid gesture conflicts.
+                settings.setSupportZoom(false)
+                settings.builtInZoomControls = false
                 settings.displayZoomControls = false
                 settings.useWideViewPort = true
                 settings.loadWithOverviewMode = true

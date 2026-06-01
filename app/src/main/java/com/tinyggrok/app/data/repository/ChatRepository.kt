@@ -2,12 +2,16 @@ package com.tinyggrok.app.data.repository
 
 import android.util.Log
 import com.google.gson.GsonBuilder
+import com.google.gson.JsonElement
 import com.tinyggrok.app.data.api.XaiApiService
-import com.tinyggrok.app.data.model.ChatRequest
-import com.tinyggrok.app.data.model.ImageUrl
-import com.tinyggrok.app.data.model.ImageUrlContent
+import com.tinyggrok.app.data.model.InputContent
+import com.tinyggrok.app.data.model.InputMessage
 import com.tinyggrok.app.data.model.Message
+import com.tinyggrok.app.data.model.ResponseTool
+import com.tinyggrok.app.data.model.ResponsesRequest
+import com.tinyggrok.app.data.model.ResponsesResponse
 import com.tinyggrok.app.data.model.TextContent
+import com.tinyggrok.app.data.model.Usage
 import retrofit2.HttpException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -16,7 +20,7 @@ import javax.inject.Singleton
 
 data class ChatResult(
     val assistantMessage: String,
-    val usage: com.tinyggrok.app.data.model.Usage? = null
+    val usage: Usage? = null
 )
 
 @Singleton
@@ -36,55 +40,78 @@ class ChatRepository @Inject constructor(
         responseFormat: String = "html"
     ): Result<ChatResult> {
         return try {
-            val systemPrompt = when (responseFormat) {
-                "html" -> "Respond using valid HTML markup only. Use tags like <p>, <ul>, <ol>, <li>, <strong>, <em>, <code>, <pre>, <h1>-<h3>, <table>, <blockquote> where appropriate. Do not wrap in <html> or <body> tags. Do not use markdown."
-                "markdown" -> "Respond using Markdown formatting. Use headers, bold, italic, code blocks, lists, tables where appropriate."
-                else -> null
+            val instructions = when (responseFormat) {
+                "html" -> "Respond using valid HTML markup only. Use tags like <p>, <ul>, <ol>, <li>, <strong>, <em>, <code>, <pre>, <h1>-<h3>, <table>, <blockquote> where appropriate. Do not wrap in <html> or <body> tags. Do not use markdown. If you are unsure or the answer may rely on recent or factual information you don't reliably know, use the web_search tool to find accurate, up-to-date information instead of guessing."
+                "markdown" -> "Respond using Markdown formatting. Use headers, bold, italic, code blocks, lists, tables where appropriate. If you are unsure or the answer may rely on recent or factual information you don't reliably know, use the web_search tool to find accurate, up-to-date information instead of guessing."
+                else -> "If you are unsure or the answer may rely on recent or factual information you don't reliably know, use the web_search tool to find accurate, up-to-date information instead of guessing."
             }
 
-            val content = buildList {
+            val input = buildList {
+                // Prior turns as plain-text messages (Responses API accepts string content)
+                history.forEach { msg ->
+                    add(InputMessage(role = msg.role, content = flattenText(msg)))
+                }
+                // Current user turn: typed parts when an image is attached, else plain text
                 if (imageBase64 != null) {
-                    add(ImageUrlContent(imageUrl = ImageUrl(url = "data:image/jpeg;base64,$imageBase64")))
+                    add(
+                        InputMessage(
+                            role = "user",
+                            content = listOf(
+                                InputContent(
+                                    type = "input_image",
+                                    imageUrl = "data:image/jpeg;base64,$imageBase64"
+                                ),
+                                InputContent(type = "input_text", text = text)
+                            )
+                        )
+                    )
+                } else {
+                    add(InputMessage(role = "user", content = text))
                 }
-                add(TextContent(text = text))
             }
 
-            val allMessages = buildList {
-                if (systemPrompt != null) {
-                    add(Message(role = "system", text = systemPrompt))
-                }
-                addAll(history)
-                add(Message(role = "user", content = content))
-            }
-
-            val request = ChatRequest(messages = allMessages)
+            val request = ResponsesRequest(
+                input = input,
+                instructions = instructions,
+                tools = listOf(ResponseTool(type = "web_search"))
+            )
 
             if (debugMode) {
                 val requestJson = gson.toJson(request)
                 debugLogRepository.logOutgoing(
-                    summary = "POST /v1/chat/completions | model=${request.model} | msgs=${allMessages.size} | hasImage=${imageBase64 != null}",
+                    summary = "POST /v1/responses | model=${request.model} | turns=${input.size} | hasImage=${imageBase64 != null} | tools=web_search",
                     body = requestJson
                 )
                 Log.d(TAG, "REQUEST: $requestJson")
             }
 
-            val response = apiService.chatCompletions(
+            val response = apiService.responses(
                 auth = "Bearer $apiKey",
                 request = request
             )
 
-            val assistantMessage = response.choices.firstOrNull()?.message?.content ?: "No response"
+            val baseMessage = extractText(response).ifBlank { "No response" }
+            val citations = extractCitations(response)
+            val assistantMessage = appendCitations(baseMessage, citations, responseFormat)
+
+            val usage = response.usage?.let {
+                Usage(
+                    prompt_tokens = it.inputTokens,
+                    completion_tokens = it.outputTokens,
+                    total_tokens = if (it.totalTokens > 0) it.totalTokens else it.inputTokens + it.outputTokens
+                )
+            }
 
             if (debugMode) {
                 val responseJson = gson.toJson(response)
                 debugLogRepository.logIncoming(
-                    summary = "HTTP 200 | choices=${response.choices.size} | usage=${response.usage?.total_tokens ?: "N/A"} tokens",
+                    summary = "HTTP 200 | usage=${response.usage?.totalTokens ?: "N/A"} tokens | citations=${citations.size}",
                     body = responseJson
                 )
                 Log.d(TAG, "RESPONSE: $responseJson")
             }
 
-            Result.success(ChatResult(assistantMessage, response.usage))
+            Result.success(ChatResult(assistantMessage, usage))
         } catch (e: HttpException) {
             val body = try { e.response()?.errorBody()?.string().orEmpty() } catch (_: Throwable) { "" }
             if (debugMode) {
@@ -110,6 +137,75 @@ class ChatRepository @Inject constructor(
                 debugLogRepository.logIncoming(summary = "EXCEPTION: ${e.javaClass.simpleName}", body = e.message ?: "unknown")
             }
             Result.failure(RuntimeException("${e.javaClass.simpleName}: ${e.message ?: "unknown error"}"))
+        }
+    }
+
+    /** Collapse a chat-completions [Message] (list of content parts) into a plain text string. */
+    private fun flattenText(message: Message): String =
+        message.content
+            .filterIsInstance<TextContent>()
+            .joinToString("\n") { it.text }
+
+    /** Pull the assistant text out of a Responses API result. */
+    private fun extractText(response: ResponsesResponse): String {
+        response.outputText?.takeIf { it.isNotBlank() }?.let { return it }
+        val parts = response.output
+            ?.filter { it.type == null || it.type == "message" }
+            ?.flatMap { it.content.orEmpty() }
+            ?.mapNotNull { part ->
+                if (part.type == null || part.type == "output_text") part.text else null
+            }
+            ?: emptyList()
+        return parts.joinToString("\n").trim()
+    }
+
+    /**
+     * Collect citation URLs whether the API returns them as a top-level array of
+     * strings, an array of objects with a "url" field, or as inline annotations.
+     */
+    private fun extractCitations(response: ResponsesResponse): List<String> {
+        val urls = LinkedHashSet<String>()
+        response.citations?.forEach { el -> urlFrom(el)?.let { urls.add(it) } }
+        response.output
+            ?.flatMap { it.content.orEmpty() }
+            ?.flatMap { it.annotations.orEmpty() }
+            ?.forEach { el -> urlFrom(el)?.let { urls.add(it) } }
+        return urls.toList()
+    }
+
+    private fun urlFrom(el: JsonElement): String? = try {
+        when {
+            el.isJsonPrimitive && el.asJsonPrimitive.isString -> el.asString.takeIf { it.isNotBlank() }
+            el.isJsonObject -> {
+                val obj = el.asJsonObject
+                (obj.get("url") ?: obj.get("uri"))?.takeIf { it.isJsonPrimitive }?.asString
+            }
+            else -> null
+        }
+    } catch (_: Throwable) {
+        null
+    }
+
+    /** Append web-search source links so the user can see where the info came from. */
+    private fun appendCitations(
+        message: String,
+        citations: List<String>,
+        responseFormat: String
+    ): String {
+        val links = citations.filter { it.isNotBlank() }.distinct()
+        if (links.isEmpty()) return message
+        return when (responseFormat) {
+            "markdown" -> buildString {
+                append(message)
+                append("\n\n**Sources**\n")
+                links.forEachIndexed { i, url -> append("${i + 1}. [$url]($url)\n") }
+            }
+            else -> buildString {
+                append(message)
+                append("<hr><p><strong>Sources</strong></p><ol>")
+                links.forEach { url -> append("<li><a href=\"$url\">$url</a></li>") }
+                append("</ol>")
+            }
         }
     }
 }

@@ -5,7 +5,8 @@ import com.google.gson.annotations.SerializedName
 data class ChatResponse(
     val id: String,
     val choices: List<Choice>,
-    val usage: Usage? = null
+    val usage: Usage? = null,
+    val citations: List<String>? = null
 )
 
 data class Choice(
